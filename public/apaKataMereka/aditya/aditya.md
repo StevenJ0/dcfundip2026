@@ -1,0 +1,3 @@
+Mengikuti Olimpiade DCF tahun ini memberikan manfaat dan pengalaman yang berharga bagi saya. Soal-soal yang diberikan dari babak penyisihan sampai final sangat sulit dan menantang, membuat saya untuk terus memahami konsep secara lebih mendalam. Para peserta berasal dari seluruh Indonesia yang mengikuti lomba ini sangat kompetitif sehingga cocok untuk mengukur kemampuan dan pemahaman di bidang kimia. Selain itu, panitia dan dosen juri yang ramah membuat suasana acara ini terasa menarik dan menyenangkan bagi saya. Terima kasih untuk segenap panitia DCF tahun 2025, semoga tahun-tahun berikutnya DCF dapat berkembang menjadi lebih baik lagi.
+
+-Aditya, Juara 1 Olimpiade DCF 2025

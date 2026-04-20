@@ -1,0 +1,123 @@
+"use server";
+
+import { createClient } from "@/utils/supabase/server";
+
+export async function submitLKTIRegistration(
+  userId: string,
+  leaderName: string,
+  schoolName: string,
+  phoneNumber: string,
+  teamName: string,
+  paperTitle: string,
+  member1Name: string,
+  member2Name: string | undefined, // Note: member2Name might be empty string from client, so we will handle that.
+  abstractUrl: string,
+  twibbonUrl: string,
+  igUrl: string,
+  paymentUrl: string
+) {
+  try {
+    const supabase = await createClient();
+
+    // 1. Update the auth user details securely server-side
+    const { error: updateAuthError } = await supabase.auth.updateUser({
+      data: {
+        full_name: leaderName,
+        school_name: schoolName,
+        phone_number: phoneNumber,
+      },
+    });
+
+    if (updateAuthError) {
+      throw new Error(`Gagal memperbarui profil: ${updateAuthError.message}`);
+    }
+
+    // Additionally sync with public.users just in case the trigger isn't perfect or needed directly
+    const { error: updatePublicError } = await supabase
+      .from("users")
+      .update({
+        full_name: leaderName,
+        school_name: schoolName,
+        phone_number: phoneNumber,
+      })
+      .eq("id", userId);
+
+    if (updatePublicError) {
+      throw new Error(`Gagal memperbarui data publik profil: ${updatePublicError.message}`);
+    }
+
+    // 2. Mutual Exclusion Validation (Olympiad)
+    const { data: olympiadUser, error: olympiadCheckError } = await supabase
+      .from("olympiad_participants")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (olympiadCheckError && olympiadCheckError.code !== "PGRST116") {
+      throw new Error("Gagal memverifikasi status pendaftaran Olimpiade silang.");
+    }
+
+    if (olympiadUser) {
+      throw new Error("Gagal: Anda telah terdaftar di kategori Olimpiade.");
+    }
+
+    // 3. Duplication Validation (LKTI)
+    const { data: existingLKTI, error: lktiCheckError } = await supabase
+      .from("lkti_teams")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (lktiCheckError && lktiCheckError.code !== "PGRST116") {
+      throw new Error("Gagal memverifikasi status pendaftaran LKTI.");
+    }
+
+    if (existingLKTI) {
+      throw new Error("Gagal: Anda sudah terdaftar sebagai peserta LKTI.");
+    }
+
+    // 4. Insert Team
+    const { data: newTeam, error: insertTeamError } = await supabase
+      .from("lkti_teams")
+      .insert({
+        user_id: userId,
+        team_name: teamName,
+        school_name: schoolName,
+        paper_title: paperTitle,
+        abstract_url: abstractUrl,
+        twibbon_url: twibbonUrl,
+        ig_proof_url: igUrl,
+        payment_proof_url: paymentUrl,
+      })
+      .select("id")
+      .single();
+
+    if (insertTeamError || !newTeam) {
+      throw new Error(`Gagal menyimpan data tim LKTI: ${insertTeamError?.message}`);
+    }
+
+    // 5. Insert Members
+    const membersToInsert = [
+      { team_id: newTeam.id, member_name: leaderName, role: "Ketua" },
+      { team_id: newTeam.id, member_name: member1Name, role: "Anggota 1" },
+    ];
+
+    if (member2Name && member2Name.trim() !== "") {
+      membersToInsert.push({ team_id: newTeam.id, member_name: member2Name, role: "Anggota 2" });
+    }
+
+    const { error: insertMembersError } = await supabase
+      .from("lkti_team_members")
+      .insert(membersToInsert);
+
+    if (insertMembersError) {
+      // Best effort rollback. If members insertion failed, we ideally should revert the team insertion.
+      await supabase.from("lkti_teams").delete().eq("id", newTeam.id);
+      throw new Error(`Gagal menyimpan anggota tim: ${insertMembersError.message}`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Terjadi kesalahan pada server." };
+  }
+}

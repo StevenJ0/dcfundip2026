@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+
+/* ─── Tailwind v4 Theme ─────────────────────────────────────────────────────── */
+@theme {
+  /* Colors from DCF 2026 design system */
+  --color-tertiary-container: #c4e3ca;
+  --color-outline: #91927a;
+  --color-on-secondary-fixed: #0d2000;
+  --color-surface-container-lowest: #001206;
+  --color-inverse-surface: #cbead1;
+  --color-outline-variant: #474834;
+  --color-secondary-fixed-dim: #aed28a;
+  --color-on-tertiary: #1b3625;
+  --color-on-tertiary-container: #4a6652;
+  --color-on-primary-fixed-variant: #444b00;
+  --color-error-container: #93000a;
+  --color-surface-tint: #c0d101;
+  --color-on-secondary-container: #a0c37d;
+  --color-surface-container-high: #152f1f;
+  --color-inverse-primary: #5b6300;
+  --color-on-secondary: #1c3701;
+  --color-surface-container: #092515;
+  --color-secondary-container: #345118;
+  --color-on-tertiary-fixed-variant: #324d3a;
+  --color-surface: #001809;
+  --color-error: #ffb4ab;
+  --color-on-background: #cbead1;
+  --color-on-secondary-fixed-variant: #324e16;
+  --color-surface-container-highest: #203a29;
+  --color-surface-dim: #001809;
+  --color-surface-variant: #203a29;
+  --color-on-primary-fixed: #1a1d00;
+  --color-on-surface: #cbead1;
+  --color-on-primary: #2f3300;
+  --color-on-error: #690005;
+  --color-on-tertiary-fixed: #052011;
+  --color-primary: #f6ff9e;
+  --color-secondary: #aed28a;
+  --color-on-surface-variant: #c8c8ad;
+  --color-primary-fixed-dim: #c0d101;
+  --color-tertiary: #e3ffe7;
+  --color-tertiary-fixed-dim: #afceb6;
+  --color-on-primary-container: #5d6500;
+  --color-secondary-fixed: #c9eea4;
+  --color-surface-container-low: #052011;
+  --color-background: #001809;
+  --color-primary-container: #d5e629;
+  --color-inverse-on-surface: #1b3625;
+  --color-tertiary-fixed: #cbead1;
+  --color-on-error-container: #ffdad6;
+  --color-primary-fixed: #dced32;
+  --color-surface-bright: #243f2d;
+
+  /* Border radius */
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Font families — CSS variables are injected by next/font/google in layout.tsx */
+  --font-headline: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-label: var(--font-inter), sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Material Symbols ───────────────────────────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base Typography ────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  scroll-padding-top: 100px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+.font-headline {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
 }
