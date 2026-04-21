@@ -25,7 +25,6 @@ interface OlimpiadeItem {
 }
 
 export function OlimpiadeClientTable({ initialData }: { initialData: OlimpiadeItem[] }) {
-  console.log(initialData)
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<OlimpiadeItem | null>(null);
