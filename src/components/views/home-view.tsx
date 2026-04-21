@@ -302,7 +302,7 @@ export default function HomeView() {
                       <div className="text-on-surface text-sm font-medium">Peserta Nasional</div>
                     </div>
                     <div>
-                      <div className="text-primary text-4xl font-bold mb-2">20k+</div>
+                      <div className="text-primary text-4xl font-bold mb-2">20.000.000</div>
                       <div className="text-on-surface text-sm font-medium">Total Hadiah (Rp)</div>
                     </div>
                   </motion.div>

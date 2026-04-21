@@ -29,7 +29,7 @@ export default function Footer() {
 
             {/* 2. Ikon TikTok (Custom SVG bergaya persis seperti Lucide) */}
             <a
-              href="https://tiktok.com/@dcf_undip" 
+              href="https://www.tiktok.com/@dcf.undip?_r=1&_t=ZS-95isSueQciN" 
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-white hover:text-[#d5e629] transition-colors"
