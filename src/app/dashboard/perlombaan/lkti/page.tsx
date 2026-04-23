@@ -16,9 +16,10 @@ export default async function LktiPage() {
 
   const { data: record } = await supabase
     .from("lkti_teams")
-    .select("*")
+    .select("*, lkti_team_members(*)")
     .eq("user_id", user.id)
     .maybeSingle();
+
 
   return (
     <div className="w-full px-8 py-10">

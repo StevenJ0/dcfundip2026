@@ -36,6 +36,9 @@ export function LktiFormView({ user }: { user: User }) {
   const [pembayaranFile, setPembayaranFile] = useState<File | null>(null);
   const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
   const [instagramFile, setInstagramFile] = useState<File | null>(null);
+  const [leaderCardFile, setLeaderCardFile] = useState<File | null>(null);
+  const [member1CardFile, setMember1CardFile] = useState<File | null>(null);
+  const [member2CardFile, setMember2CardFile] = useState<File | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -61,7 +64,10 @@ export function LktiFormView({ user }: { user: User }) {
     abstractFile !== null &&
     pembayaranFile !== null &&
     twibbonFile !== null &&
-    instagramFile !== null;
+    instagramFile !== null &&
+    leaderCardFile !== null &&
+    member1CardFile !== null &&
+    (member2Name.trim() === "" || member2CardFile !== null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +100,13 @@ export function LktiFormView({ user }: { user: User }) {
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
       const igUrl = await uploadFile(instagramFile, "instagram");
       const paymentUrl = await uploadFile(pembayaranFile, "bukti-bayar");
+      
+      const leaderCardUrl = await uploadFile(leaderCardFile, "kartu-pelajar-ketua");
+      const member1CardUrl = await uploadFile(member1CardFile, "kartu-pelajar-anggota-1");
+      let member2CardUrl = "";
+      if (member2Name.trim() !== "" && member2CardFile) {
+        member2CardUrl = await uploadFile(member2CardFile, "kartu-pelajar-anggota-2");
+      }
 
       // Insert to Database via Server Action
       const submitResult = await submitLKTIRegistration(
@@ -108,7 +121,10 @@ export function LktiFormView({ user }: { user: User }) {
         abstractUrl,
         twibbonUrl,
         igUrl,
-        paymentUrl
+        paymentUrl,
+        leaderCardUrl,
+        member1CardUrl,
+        member2CardUrl
       );
 
       if (!submitResult.success) {
@@ -348,6 +364,81 @@ export function LktiFormView({ user }: { user: User }) {
                   {instagramFile && (
                     <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
                       {instagramFile.name}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              {/* Upload Kartu Pelajar Ketua */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-on-surface-variant ml-1">
+                  Upload Kartu Pelajar Ketua <span className="text-error">*</span>
+                </label>
+                <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
+                    badge
+                  </span>
+                  <p className="text-white font-medium mb-1">Click to upload</p>
+                  <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setLeaderCardFile(e.target.files?.[0] || null)}
+                  />
+                  {leaderCardFile && (
+                    <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                      {leaderCardFile.name}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              {/* Upload Kartu Pelajar Anggota 1 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-on-surface-variant ml-1">
+                  Upload Kartu Pelajar Anggota 1 <span className="text-error">*</span>
+                </label>
+                <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
+                    badge
+                  </span>
+                  <p className="text-white font-medium mb-1">Click to upload</p>
+                  <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setMember1CardFile(e.target.files?.[0] || null)}
+                  />
+                  {member1CardFile && (
+                    <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                      {member1CardFile.name}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              {/* Upload Kartu Pelajar Anggota 2 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-on-surface-variant ml-1">
+                  Upload Kartu Pelajar Anggota 2 {member2Name.trim() !== "" ? <span className="text-error">*</span> : "(Opsional)"}
+                </label>
+                <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
+                    badge
+                  </span>
+                  <p className="text-white font-medium mb-1">Click to upload</p>
+                  <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setMember2CardFile(e.target.files?.[0] || null)}
+                  />
+                  {member2CardFile && (
+                    <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                      {member2CardFile.name}
                     </p>
                   )}
                 </label>

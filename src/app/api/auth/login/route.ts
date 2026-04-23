@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { translateAuthError } from "@/utils/error-mapping";
 
 export async function POST(request: Request) {
     try {
@@ -13,11 +14,11 @@ export async function POST(request: Request) {
         });
 
         if (error) {
-            return NextResponse.json({ error: error.message }, { status: 400 });
+            return NextResponse.json({ error: translateAuthError(error.message) }, { status: 400 });
         }
 
         return NextResponse.json({ message: "Login successful" }, { status: 200 });
     } catch (err: any) {
-        return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
+        return NextResponse.json({ error: "Terjadi kesalahan pada server. Silakan coba beberapa saat lagi." }, { status: 400 });
     }
 }

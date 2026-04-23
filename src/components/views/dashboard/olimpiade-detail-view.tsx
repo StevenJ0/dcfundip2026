@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { resubmitOlimpiadeRegistration } from "@/app/actions/resubmit-olimpiade";
+import { updateUserProfile } from "@/app/actions/update-profile";
 import { ModalNotify } from "@/components/ui/modal-notify";
+import { IdCard } from "lucide-react";
 
 interface User {
   id: string;
@@ -22,6 +24,7 @@ interface OlimpiadeRecord {
   status: string;
   payment_proof_url: string;
   twibbon_url: string;
+  student_card_url: string;
   ig_proof_url: string;
   created_at: string;
 }
@@ -31,6 +34,7 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
 
   const [pembayaranFile, setPembayaranFile] = useState<File | null>(null);
   const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
+  const [studentCardFile, setStudentCardFile] = useState<File | null>(null);
   const [instagramFile, setInstagramFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,6 +43,14 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    fullName: user.user_metadata?.full_name || "",
+    schoolName: user.user_metadata?.school_name || "",
+    phoneNumber: user.user_metadata?.phone_number || "",
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   const showModal = (title: string, message: string, type: "success" | "error" | "info") => {
     setModalTitle(title);
     setModalMessage(message);
@@ -46,7 +58,24 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
     setIsModalOpen(true);
   };
 
-  const isRevisionFormValid = pembayaranFile !== null && twibbonFile !== null && instagramFile !== null;
+  const handleSaveProfile = async () => {
+    if (!profileForm.fullName || !profileForm.schoolName || !profileForm.phoneNumber) {
+      showModal("Gagal", "Semua kolom profil harus diisi.", "error");
+      return;
+    }
+    setIsSavingProfile(true);
+    const res = await updateUserProfile(profileForm.fullName, profileForm.schoolName, profileForm.phoneNumber);
+    setIsSavingProfile(false);
+    if (res.success) {
+      showModal("Berhasil", "Profil berhasil diperbarui.", "success");
+      setIsEditingProfile(false);
+      router.refresh();
+    } else {
+      showModal("Gagal", res.error || "Gagal memperbarui profil.", "error");
+    }
+  };
+
+  const isRevisionFormValid = pembayaranFile !== null && twibbonFile !== null && studentCardFile !== null && instagramFile !== null;
 
   const handleSubmitRevision = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,12 +104,14 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
       };
 
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
+      const studentCardUrl = await uploadFile(studentCardFile, "kartu-pelajar");
       const igUrl = await uploadFile(instagramFile, "instagram");
       const paymentUrl = await uploadFile(pembayaranFile, "bukti-bayar");
 
       const submitResult = await resubmitOlimpiadeRegistration(
         user.id,
         twibbonUrl,
+        studentCardUrl,
         igUrl,
         paymentUrl
       );
@@ -148,28 +179,114 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
 
         {data.status !== 'REJECTED' ? (
           <>
-            {/* Section 1: User Info (Read-only mapped) */}
+            {/* Section 1: User Info (Editable) */}
             <div className="space-y-4">
-              <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
-                 Informasi Peserta
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
+                  Informasi Peserta
+                </h3>
+                {!isEditingProfile ? (
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="text-xs font-bold bg-surface-container-highest px-4 py-2 rounded-lg text-primary-container hover:bg-surface-container-highest/60 transition-colors"
+                  >
+                    Edit Profil
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsEditingProfile(false)}
+                      className="text-xs font-bold bg-surface-container-highest px-4 py-2 rounded-lg text-white hover:bg-surface-container-highest/60 transition-colors"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={isSavingProfile}
+                      className="text-xs font-bold bg-primary-container px-4 py-2 rounded-lg text-on-primary-container hover:shadow-[0_0_15px_rgba(213,230,41,0.3)] transition-all disabled:opacity-50"
+                    >
+                      {isSavingProfile ? "Menyimpan..." : "Simpan Perubahan"}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-container-highest/20 p-6 rounded-2xl border border-outline-variant/30">
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Nama Lengkap</p>
-                  <p className="text-white font-medium">{user.user_metadata?.full_name}</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="text"
+                      value={profileForm.fullName}
+                      onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.full_name}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Email</p>
-                  <p className="text-white font-medium">{user.email}</p>
+                  <p className="text-white font-medium opacity-70">{user.email}</p>
                 </div>
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Asal Sekolah</p>
-                  <p className="text-white font-medium">{user.user_metadata?.school_name}</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="text"
+                      value={profileForm.schoolName}
+                      onChange={(e) => setProfileForm({ ...profileForm, schoolName: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.school_name}</p>
+                  )}
                 </div>
                 <div>
-                  <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Nomor Telepon</p>
-                  <p className="text-white font-medium">{user.user_metadata?.phone_number}</p>
+                  <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Nomor WhatsApp/HP</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="tel"
+                      value={profileForm.phoneNumber}
+                      onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.phone_number || "-"}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Berkas Identitas */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
+                 <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
+                 Berkas Identitas
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-4">
+                    <IdCard className="text-[#d5e629]" size={28} />
+                    <div>
+                      <p className="text-xs text-[#d5e629] font-bold uppercase tracking-wider">Peserta</p>
+                      <p className="text-white font-medium truncate">{user.user_metadata?.full_name}</p>
+                    </div>
+                  </div>
+                  <div>
+                    {data.student_card_url ? (
+                      <div className="flex items-center justify-between gap-2 mt-4">
+                         <span className="text-[10px] bg-green-500/20 text-green-300 px-2 py-1 rounded-md font-semibold">Tersedia</span>
+                         <a href={data.student_card_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-surface-container bg-primary-container hover:bg-primary-container/80 transition-colors px-3 py-1.5 rounded-lg">
+                           Lihat Berkas <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                         </a>
+                      </div>
+                    ) : (
+                      <div className="mt-4">
+                        <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-md font-semibold">Belum Diunggah</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,6 +318,7 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
                     </a>
                   </div>
                 </div>
+
 
                 <div className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
                   <span className="material-symbols-outlined text-3xl text-[#d5e629] mb-4">photo_camera</span>
@@ -269,6 +387,31 @@ export function OlimpiadeDetailView({ user, data }: { user: User; data: Olimpiad
                   {twibbonFile && (
                     <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
                       {twibbonFile.name}
+                    </p>
+                  )}
+                </label>
+              </div>
+
+              {/* Upload Kartu Pelajar */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-on-surface-variant ml-1">
+                  Upload Kartu Pelajar / Surat Keterangan Aktif <span className="text-error">*</span>
+                </label>
+                <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
+                    badge
+                  </span>
+                  <p className="text-white font-medium mb-1">Click to upload or drag and drop</p>
+                  <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setStudentCardFile(e.target.files?.[0] || null)}
+                  />
+                  {studentCardFile && (
+                    <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                      {studentCardFile.name}
                     </p>
                   )}
                 </label>

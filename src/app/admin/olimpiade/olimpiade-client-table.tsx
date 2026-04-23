@@ -15,12 +15,14 @@ interface OlimpiadeItem {
   status: string;
   payment_proof_url: string;
   twibbon_url: string;
+  student_card_url: string;
   ig_proof_url: string;
   created_at: string;
   users: {
     full_name: string;
     email: string;
     school_name?: string;
+    phone_number?: string;
   }
 }
 
@@ -139,15 +141,16 @@ export function OlimpiadeClientTable({ initialData }: { initialData: OlimpiadeIt
 
       {/* Table Container */}
       <div className="bg-[#0a2510] border border-[#345118]/20 rounded-[40px] overflow-hidden shadow-2xl relative">
-         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse border-spacing-0">
+         <div className="overflow-x-auto pb-4 w-full">
+            <table className="w-full text-left border-collapse border-spacing-0 whitespace-nowrap min-w-max">
               <thead>
                 <tr className="border-b border-[#345118]/10 bg-[#001809]/50">
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40">Nama Peserta / Email</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40">Asal Instansi</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40">Status</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Bukti Bayar</th>
-                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Kartu / Twibbon</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Twibbon</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Kartu Pelajar</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Bukti IG</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Tindakan</th>
                 </tr>
@@ -190,7 +193,23 @@ export function OlimpiadeClientTable({ initialData }: { initialData: OlimpiadeIt
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="mx-auto w-fit px-3 py-1.5 rounded-lg border border-[#345118] text-[#cbead1] hover:bg-[#345118]/20 flex items-center justify-center gap-1 transition-colors relative group/btn"
-                          title="Buka Bukti Twibbon / Kartu Pelajar"
+                          title="Buka Bukti Twibbon"
+                        >
+                           <Image size={14} />
+                           <span className="text-[10px] font-bold">Twibbon</span>
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-[#cbead1]/40 mx-auto block w-fit">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-6 text-center">
+                      {item.student_card_url ? (
+                        <a 
+                          href={item.student_card_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="mx-auto w-fit px-3 py-1.5 rounded-lg border border-[#345118] text-[#cbead1] hover:bg-[#345118]/20 flex items-center justify-center gap-1 transition-colors relative group/btn"
+                          title="Buka Kartu Pelajar"
                         >
                            <Image size={14} />
                            <span className="text-[10px] font-bold">Kartu</span>
@@ -313,6 +332,16 @@ export function OlimpiadeClientTable({ initialData }: { initialData: OlimpiadeIt
                   <p className="text-[11px] uppercase tracking-wider text-[#cbead1]/50 mb-1">Email</p>
                   <p className="text-white font-semibold break-all">{selectedParticipant.users?.email || "-"}</p>
                 </div>
+                <div className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4">
+                  <p className="text-[11px] uppercase tracking-wider text-[#cbead1]/50 mb-1">Nomor HP/WA</p>
+                  {selectedParticipant.users?.phone_number ? (
+                    <a href={`tel:${selectedParticipant.users.phone_number}`} className="text-white font-semibold hover:text-[#d5e629] transition-colors">
+                      {selectedParticipant.users.phone_number}
+                    </a>
+                  ) : (
+                    <p className="text-white font-semibold">-</p>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -321,7 +350,8 @@ export function OlimpiadeClientTable({ initialData }: { initialData: OlimpiadeIt
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { label: "Bukti Bayar", url: selectedParticipant.payment_proof_url },
-                  { label: "Twibbon / Kartu Pelajar", url: selectedParticipant.twibbon_url },
+                  { label: "Bukti Twibbon", url: selectedParticipant.twibbon_url },
+                  { label: "Kartu Pelajar", url: selectedParticipant.student_card_url },
                   { label: "Bukti Instagram", url: selectedParticipant.ig_proof_url },
                 ].map((doc) => (
                   <div key={doc.label} className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4 flex items-center justify-between gap-3">

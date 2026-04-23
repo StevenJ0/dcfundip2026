@@ -22,6 +22,7 @@ export function OlimpiadeFormView({ user }: { user: User }) {
   
   const [pembayaranFile, setPembayaranFile] = useState<File | null>(null);
   const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
+  const [studentCardFile, setStudentCardFile] = useState<File | null>(null);
   const [instagramFile, setInstagramFile] = useState<File | null>(null);
   
   const [fullName, setFullName] = useState(user.user_metadata?.full_name || "");
@@ -48,6 +49,7 @@ export function OlimpiadeFormView({ user }: { user: User }) {
     phoneNumber.trim() !== "" &&
     pembayaranFile !== null &&
     twibbonFile !== null &&
+    studentCardFile !== null &&
     instagramFile !== null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +80,7 @@ export function OlimpiadeFormView({ user }: { user: User }) {
 
       // Sequentially upload to avoid overwhelming the connection
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
+      const studentCardUrl = await uploadFile(studentCardFile, "kartu-pelajar");
       const igUrl = await uploadFile(instagramFile, "instagram");
       const paymentUrl = await uploadFile(pembayaranFile, "bukti-bayar");
 
@@ -88,6 +91,7 @@ export function OlimpiadeFormView({ user }: { user: User }) {
         schoolName,
         phoneNumber,
         twibbonUrl,
+        studentCardUrl,
         igUrl,
         paymentUrl
       );
@@ -230,6 +234,31 @@ export function OlimpiadeFormView({ user }: { user: User }) {
                 {twibbonFile && (
                   <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
                     {twibbonFile.name}
+                  </p>
+                )}
+              </label>
+            </div>
+
+            {/* Upload Kartu Pelajar */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-on-surface-variant ml-1">
+                Upload Kartu Pelajar / Surat Keterangan Aktif <span className="text-error">*</span>
+              </label>
+              <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
+                  badge
+                </span>
+                <p className="text-white font-medium mb-1">Click to upload or drag and drop</p>
+                <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setStudentCardFile(e.target.files?.[0] || null)}
+                />
+                {studentCardFile && (
+                  <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                    {studentCardFile.name}
                   </p>
                 )}
               </label>

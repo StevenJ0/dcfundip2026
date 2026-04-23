@@ -187,7 +187,7 @@ export async function getAllOlimpiadeParticipants() {
     // Assuming join with users for full_name
     const { data, error } = await supabase
       .from("olympiad_participants")
-      .select("*, users!inner(full_name, email, school_name)")
+      .select("*, users!inner(full_name, email, school_name, phone_number)")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return { success: true, data };
@@ -199,10 +199,10 @@ export async function getAllOlimpiadeParticipants() {
 export async function getAllLktiTeams() {
   try {
     const { supabase } = await verifyAdmin();
-    // Assuming join with users for leader info
+    // Assuming join with users for leader info and lkti_team_members for members
     const { data, error } = await supabase
       .from("lkti_teams")
-      .select("*, users!inner(full_name, email, school_name)")
+      .select("*, users!inner(full_name, email, school_name, phone_number), lkti_team_members(member_name, role, student_card_url)")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return { success: true, data };

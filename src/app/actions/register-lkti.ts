@@ -14,9 +14,16 @@ export async function submitLKTIRegistration(
   abstractUrl: string,
   twibbonUrl: string,
   igUrl: string,
-  paymentUrl: string
+  paymentUrl: string,
+  leaderCardUrl: string,
+  member1CardUrl: string,
+  member2CardUrl: string
 ) {
   try {
+    if (!userId || !leaderName || !schoolName || !phoneNumber || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !paymentUrl || !leaderCardUrl || !member1CardUrl) {
+      throw new Error("Data pendaftaran tidak lengkap. Mohon periksa kembali form Anda.");
+    }
+
     const supabase = await createClient();
 
     // 1. Update the auth user details securely server-side
@@ -29,7 +36,7 @@ export async function submitLKTIRegistration(
     });
 
     if (updateAuthError) {
-      throw new Error(`Gagal memperbarui profil: ${updateAuthError.message}`);
+      throw new Error("Gagal memperbarui profil. Silakan coba beberapa saat lagi.");
     }
 
     // Additionally sync with public.users just in case the trigger isn't perfect or needed directly
@@ -43,7 +50,7 @@ export async function submitLKTIRegistration(
       .eq("id", userId);
 
     if (updatePublicError) {
-      throw new Error(`Gagal memperbarui data publik profil: ${updatePublicError.message}`);
+      throw new Error("Gagal memperbarui data profil. Silakan coba beberapa saat lagi.");
     }
 
     // 2. Mutual Exclusion Validation (Olympiad)
@@ -54,7 +61,7 @@ export async function submitLKTIRegistration(
       .maybeSingle();
 
     if (olympiadCheckError && olympiadCheckError.code !== "PGRST116") {
-      throw new Error("Gagal memverifikasi status pendaftaran Olimpiade silang.");
+      throw new Error("Terjadi kesalahan saat memverifikasi status pendaftaran.");
     }
 
     if (olympiadUser) {
@@ -69,7 +76,7 @@ export async function submitLKTIRegistration(
       .maybeSingle();
 
     if (lktiCheckError && lktiCheckError.code !== "PGRST116") {
-      throw new Error("Gagal memverifikasi status pendaftaran LKTI.");
+      throw new Error("Terjadi kesalahan saat memverifikasi status pendaftaran.");
     }
 
     if (existingLKTI) {
@@ -88,22 +95,23 @@ export async function submitLKTIRegistration(
         twibbon_url: twibbonUrl,
         ig_proof_url: igUrl,
         payment_proof_url: paymentUrl,
+        student_card_url: leaderCardUrl,
       })
       .select("id")
       .single();
 
     if (insertTeamError || !newTeam) {
-      throw new Error(`Gagal menyimpan data tim LKTI: ${insertTeamError?.message}`);
+      throw new Error("Gagal menyimpan data pendaftaran. Pastikan ukuran file tidak terlalu besar atau coba beberapa saat lagi.");
     }
 
     // 5. Insert Members
     const membersToInsert = [
-      { team_id: newTeam.id, member_name: leaderName, role: "Ketua" },
-      { team_id: newTeam.id, member_name: member1Name, role: "Anggota 1" },
+      { team_id: newTeam.id, member_name: leaderName, role: "Ketua", student_card_url: leaderCardUrl },
+      { team_id: newTeam.id, member_name: member1Name, role: "Anggota 1", student_card_url: member1CardUrl },
     ];
 
     if (member2Name && member2Name.trim() !== "") {
-      membersToInsert.push({ team_id: newTeam.id, member_name: member2Name, role: "Anggota 2" });
+      membersToInsert.push({ team_id: newTeam.id, member_name: member2Name, role: "Anggota 2", student_card_url: member2CardUrl });
     }
 
     const { error: insertMembersError } = await supabase
@@ -113,11 +121,11 @@ export async function submitLKTIRegistration(
     if (insertMembersError) {
       // Best effort rollback. If members insertion failed, we ideally should revert the team insertion.
       await supabase.from("lkti_teams").delete().eq("id", newTeam.id);
-      throw new Error(`Gagal menyimpan anggota tim: ${insertMembersError.message}`);
+      throw new Error("Gagal menyimpan data pendaftaran. Pastikan ukuran file tidak terlalu besar atau coba beberapa saat lagi.");
     }
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message || "Terjadi kesalahan pada server." };
+    return { success: false, error: error.message || "Terjadi kesalahan pada server. Silakan coba beberapa saat lagi." };
   }
 }

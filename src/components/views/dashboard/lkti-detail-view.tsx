@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { submitFullPaper } from "@/app/actions/upload-full-paper";
 import { resubmitLKTIRegistration } from "@/app/actions/resubmit-lkti";
+import { updateUserProfile } from "@/app/actions/update-profile";
 import { ModalNotify } from "@/components/ui/modal-notify";
+import { IdCard } from "lucide-react";
 
 interface User {
   id: string;
@@ -29,7 +31,13 @@ interface LktiRecord {
   paper_url?: string;
   team_name?: string;
   paper_title?: string;
+  student_card_url: string;
   created_at: string;
+  lkti_team_members: {
+    member_name: string;
+    role: string;
+    student_card_url: string;
+  }[];
 }
 
 export function LktiDetailView({ user, data }: { user: User; data: LktiRecord }) {
@@ -39,16 +47,32 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [teamName, setTeamName] = useState(data.team_name || "");
   const [paperTitle, setPaperTitle] = useState(data.paper_title || "");
+  const [member1Name, setMember1Name] = useState("");
+  const [member2Name, setMember2Name] = useState("");
+
   const [abstractFile, setAbstractFile] = useState<File | null>(null);
   const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
   const [instagramFile, setInstagramFile] = useState<File | null>(null);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  
+  const [leaderCardFile, setLeaderCardFile] = useState<File | null>(null);
+  const [member1CardFile, setMember1CardFile] = useState<File | null>(null);
+  const [member2CardFile, setMember2CardFile] = useState<File | null>(null);
+
   const [isResubmitting, setIsResubmitting] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error" | "info">("info");
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    fullName: user.user_metadata?.full_name || "",
+    schoolName: user.user_metadata?.school_name || "",
+    phoneNumber: user.user_metadata?.phone_number || "",
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const showModal = (title: string, message: string, type: "success" | "error" | "info") => {
     setModalTitle(title);
@@ -57,13 +81,37 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
     setIsModalOpen(true);
   };
 
+  console.log(data)
+
+
+  const handleSaveProfile = async () => {
+    if (!profileForm.fullName || !profileForm.schoolName || !profileForm.phoneNumber) {
+      showModal("Gagal", "Semua kolom profil harus diisi.", "error");
+      return;
+    }
+    setIsSavingProfile(true);
+    const res = await updateUserProfile(profileForm.fullName, profileForm.schoolName, profileForm.phoneNumber);
+    setIsSavingProfile(false);
+    if (res.success) {
+      showModal("Berhasil", "Profil berhasil diperbarui.", "success");
+      setIsEditingProfile(false);
+      router.refresh();
+    } else {
+      showModal("Gagal", res.error || "Gagal memperbarui profil.", "error");
+    }
+  };
+
   const isRevisionFormValid =
     teamName.trim() !== "" &&
     paperTitle.trim() !== "" &&
+    member1Name.trim() !== "" &&
     abstractFile !== null &&
     twibbonFile !== null &&
     instagramFile !== null &&
-    paymentFile !== null;
+    paymentFile !== null &&
+    leaderCardFile !== null &&
+    member1CardFile !== null &&
+    (member2Name.trim() === "" || member2CardFile !== null);
 
   const isRejected = data.status === "REJECTED";
   const isReadOnly = data.status === "PENDING" || data.status === "VERIFIED";
@@ -134,15 +182,27 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
       const igUrl = await uploadFile(instagramFile, "instagram");
       const paymentUrl = await uploadFile(paymentFile, "bukti-bayar");
+      
+      const leaderCardUrl = await uploadFile(leaderCardFile, "kartu-pelajar-ketua");
+      const member1CardUrl = await uploadFile(member1CardFile, "kartu-pelajar-anggota-1");
+      let member2CardUrl = "";
+      if (member2Name.trim() !== "" && member2CardFile) {
+        member2CardUrl = await uploadFile(member2CardFile, "kartu-pelajar-anggota-2");
+      }
 
       const submitResult = await resubmitLKTIRegistration(
         data.id,
         teamName,
         paperTitle,
+        member1Name,
+        member2Name,
         abstractUrl,
         twibbonUrl,
         igUrl,
-        paymentUrl
+        paymentUrl,
+        leaderCardUrl,
+        member1CardUrl,
+        member2CardUrl
       );
 
       if (!submitResult.success) {
@@ -193,18 +253,75 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
         {isReadOnly && (
           <>
             <div className="space-y-4">
-              <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
-                Informasi Tim
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
+                  Informasi Tim
+                </h3>
+                {!isEditingProfile ? (
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="text-xs font-bold bg-surface-container-highest px-4 py-2 rounded-lg text-primary-container hover:bg-surface-container-highest/60 transition-colors"
+                  >
+                    Edit Profil
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsEditingProfile(false)}
+                      className="text-xs font-bold bg-surface-container-highest px-4 py-2 rounded-lg text-white hover:bg-surface-container-highest/60 transition-colors"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={isSavingProfile}
+                      className="text-xs font-bold bg-primary-container px-4 py-2 rounded-lg text-on-primary-container hover:shadow-[0_0_15px_rgba(213,230,41,0.3)] transition-all disabled:opacity-50"
+                    >
+                      {isSavingProfile ? "Menyimpan..." : "Simpan Perubahan"}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-container-highest/20 p-6 rounded-2xl border border-outline-variant/30">
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Ketua Tim</p>
-                  <p className="text-white font-medium">{user.user_metadata?.full_name}</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="text"
+                      value={profileForm.fullName}
+                      onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.full_name}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Asal Instansi</p>
-                  <p className="text-white font-medium">{user.user_metadata?.school_name}</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="text"
+                      value={profileForm.schoolName}
+                      onChange={(e) => setProfileForm({ ...profileForm, schoolName: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.school_name}</p>
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Nomor WhatsApp/HP Ketua</p>
+                  {isEditingProfile ? (
+                    <input
+                      type="tel"
+                      value={profileForm.phoneNumber}
+                      onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                      className="w-full bg-surface-container-high border border-outline-variant/50 text-on-surface rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-container/70 focus:border-primary-container transition-all"
+                    />
+                  ) : (
+                    <p className="text-white font-medium">{user.user_metadata?.phone_number || "-"}</p>
+                  )}
                 </div>
                 {data.team_name && (
                   <div>
@@ -218,6 +335,44 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                     <p className="text-white font-medium">{data.paper_title}</p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-headline font-bold text-white flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
+                Informasi Anggota & Identitas
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                
+
+                {/* Member Cards */}
+                {data.lkti_team_members?.map((member, idx) => (
+                  <div key={idx} className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
+                    <div className="flex items-center gap-3 mb-4">
+                      <IdCard className="text-[#d5e629]" size={28} />
+                      <div>
+                        <p className="text-xs text-[#d5e629] font-bold uppercase tracking-wider">{member.role}</p>
+                        <p className="text-white font-medium truncate">{member.member_name}</p>
+                      </div>
+                    </div>
+                    <div>
+                      {member.student_card_url ? (
+                        <div className="flex items-center justify-between gap-2 mt-4">
+                           <span className="text-[10px] bg-green-500/20 text-green-300 px-2 py-1 rounded-md font-semibold">Tersedia</span>
+                           <a href={member.student_card_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-surface-container bg-primary-container hover:bg-primary-container/80 transition-colors px-3 py-1.5 rounded-lg">
+                             Lihat Berkas <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                           </a>
+                        </div>
+                      ) : (
+                        <div className="mt-4">
+                          <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-md font-semibold">Belum Diunggah</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -366,6 +521,27 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                       className="w-full bg-surface-container-highest border-none rounded-xl py-4 px-6 text-white text-base focus:ring-2 focus:ring-primary-container transition-all"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-on-surface-variant">Nama Anggota 1 <span className="text-error">*</span></label>
+                    <input
+                      type="text"
+                      value={member1Name}
+                      onChange={(e) => setMember1Name(e.target.value)}
+                      required
+                      placeholder="Nama Lengkap Anggota 1"
+                      className="w-full bg-surface-container-highest border-none rounded-xl py-4 px-6 text-white text-base focus:ring-2 focus:ring-primary-container transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-on-surface-variant">Nama Anggota 2 (Opsional)</label>
+                    <input
+                      type="text"
+                      value={member2Name}
+                      onChange={(e) => setMember2Name(e.target.value)}
+                      placeholder="Nama Lengkap Anggota 2"
+                      className="w-full bg-surface-container-highest border-none rounded-xl py-4 px-6 text-white text-base focus:ring-2 focus:ring-primary-container transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -461,6 +637,75 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                       {paymentFile && (
                         <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
                           {paymentFile.name}
+                        </p>
+                      )}
+                    </label>
+                  </div>
+
+                  {/* Upload Kartu Pelajar Ketua */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-on-surface-variant ml-1">
+                      Upload Kartu Pelajar Ketua <span className="text-error">*</span>
+                    </label>
+                    <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                      <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">badge</span>
+                      <p className="text-white font-medium mb-1">Click to upload</p>
+                      <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setLeaderCardFile(e.target.files?.[0] || null)}
+                      />
+                      {leaderCardFile && (
+                        <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                          {leaderCardFile.name}
+                        </p>
+                      )}
+                    </label>
+                  </div>
+
+                  {/* Upload Kartu Pelajar Anggota 1 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-on-surface-variant ml-1">
+                      Upload Kartu Pelajar Anggota 1 <span className="text-error">*</span>
+                    </label>
+                    <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                      <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">badge</span>
+                      <p className="text-white font-medium mb-1">Click to upload</p>
+                      <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setMember1CardFile(e.target.files?.[0] || null)}
+                      />
+                      {member1CardFile && (
+                        <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                          {member1CardFile.name}
+                        </p>
+                      )}
+                    </label>
+                  </div>
+
+                  {/* Upload Kartu Pelajar Anggota 2 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-on-surface-variant ml-1">
+                      Upload Kartu Pelajar Anggota 2 {member2Name.trim() !== "" ? <span className="text-error">*</span> : "(Opsional)"}
+                    </label>
+                    <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                      <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">badge</span>
+                      <p className="text-white font-medium mb-1">Click to upload</p>
+                      <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setMember2CardFile(e.target.files?.[0] || null)}
+                      />
+                      {member2CardFile && (
+                        <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                          {member2CardFile.name}
                         </p>
                       )}
                     </label>

@@ -19,12 +19,19 @@ interface LktiItem {
   ig_proof_url: string;
   abstract_url?: string;
   paper_url?: string;
+  student_card_url: string;
   created_at: string;
   users: {
     full_name: string;
     email: string;
     school_name?: string;
-  }
+    phone_number?: string;
+  };
+  lkti_team_members: {
+    member_name: string;
+    role: string;
+    student_card_url: string;
+  }[];
 }
 
 export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
@@ -164,7 +171,7 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
 
       {/* Table Container */}
       <div className="bg-[#0a2510]/60 border border-[#345118]/20 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-md">
-         <div className="overflow-x-auto pb-4">
+         <div className="overflow-x-auto pb-4 w-full">
             <table className="w-full text-left border-collapse border-spacing-0 whitespace-nowrap min-w-max">
               <thead className="hidden lg:table-header-group">
                 <tr className="border-b border-[#345118]/10 bg-[#001809]/80">
@@ -172,6 +179,7 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40">Info Tim</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Abstrak</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Bayar</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Kartu Ketua</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Twibbon</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">IG</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Full Paper</th>
@@ -192,8 +200,14 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                     <td className="block lg:table-cell px-6 py-5 align-middle">
                       <div className="flex flex-col">
                         <span className="text-white font-headline font-bold text-sm tracking-tight uppercase">{item.team_name}</span>
-                        <span className="text-[10px] font-medium text-[#cbead1]/40 tracking-wide">Ketua: {item.users?.full_name}</span>
-                        <span className="text-[#cbead1] text-[10px] font-['Space_Grotesk'] mt-1">{item.users?.school_name || "Instansi Tidak Diketahui"}</span>
+                        <div className="flex flex-col mt-1 space-y-1">
+                          {item.lkti_team_members?.map((member, idx) => (
+                            <span key={idx} className="text-[10px] font-medium text-[#cbead1]/60 tracking-wide">
+                              {member.role}: <span className="text-white">{member.member_name}</span>
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-[#cbead1] text-[10px] font-['Space_Grotesk'] mt-2">{item.users?.school_name || "Instansi Tidak Diketahui"}</span>
                       </div>
                     </td>
 
@@ -203,6 +217,7 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                       <div className="flex gap-2 flex-wrap">
                         {renderDocButton(item.abstract_url, <FileText size={14} />, "Abstrak", "bg-purple-400/10 border border-purple-400/30 text-purple-400 hover:bg-purple-400 hover:text-white")}
                         {renderDocButton(item.payment_proof_url, <ExternalLink size={14} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
+                        {renderDocButton(item.student_card_url, <span className="font-bold text-[10px]">K</span>, "Kartu Ketua", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                         {renderDocButton(item.twibbon_url, <span className="font-bold text-[10px]">T</span>, "Twibbon", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                         {renderDocButton(item.ig_proof_url, <CiInstagram size={14} />, "Instagram", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                         {renderDocButton(item.paper_url, <Download size={14} />, "Full Paper", "bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-400 hover:text-white")}
@@ -215,6 +230,9 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                     </td>
                     <td className="hidden lg:table-cell px-4 py-5 align-middle">
                       {renderDocButton(item.payment_proof_url, <ExternalLink size={16} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
+                    </td>
+                    <td className="hidden lg:table-cell px-4 py-5 align-middle">
+                      {renderDocButton(item.student_card_url, <span className="font-bold text-[12px]">K</span>, "Kartu Ketua", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                     </td>
                     <td className="hidden lg:table-cell px-4 py-5 align-middle">
                       {renderDocButton(item.twibbon_url, <span className="font-bold text-[12px]">T</span>, "Twibbon", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
@@ -339,15 +357,25 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                   <p className="text-[11px] uppercase tracking-wider text-[#cbead1]/50 mb-1">Asal Instansi/Sekolah</p>
                   <p className="text-white font-semibold">{selectedTeam.users?.school_name || "-"}</p>
                 </div>
-                <div className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4 md:col-span-2">
+                <div className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4">
                   <p className="text-[11px] uppercase tracking-wider text-[#cbead1]/50 mb-1">Email</p>
                   <p className="text-white font-semibold break-all">{selectedTeam.users?.email || "-"}</p>
+                </div>
+                <div className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4">
+                  <p className="text-[11px] uppercase tracking-wider text-[#cbead1]/50 mb-1">Nomor HP/WA Ketua</p>
+                  {selectedTeam.users?.phone_number ? (
+                    <a href={`tel:${selectedTeam.users.phone_number}`} className="text-white font-semibold hover:text-[#d5e629] transition-colors">
+                      {selectedTeam.users.phone_number}
+                    </a>
+                  ) : (
+                    <p className="text-white font-semibold">-</p>
+                  )}
                 </div>
               </div>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-sm font-black uppercase tracking-widest text-[#d5e629]/70">Dokumen</h4>
+              <h4 className="text-sm font-black uppercase tracking-widest text-[#d5e629]/70">Dokumen Tim</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { label: "Abstrak", url: selectedTeam.abstract_url },
@@ -364,6 +392,32 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                     {doc.url ? (
                       <a
                         href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-[#d5e629]/40 text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809] transition-colors"
+                      >
+                        <ExternalLink size={13} /> Buka
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-[#cbead1]/40">N/A</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-sm font-black uppercase tracking-widest text-[#d5e629]/70">Kartu Pelajar Tim</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {selectedTeam.lkti_team_members?.map((member, idx) => (
+                  <div key={idx} className="bg-[#001809] border border-[#345118]/30 rounded-2xl p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-white font-semibold">{member.role}</p>
+                      <p className="text-xs text-[#cbead1]/60">{member.member_name}</p>
+                    </div>
+                    {member.student_card_url ? (
+                      <a
+                        href={member.student_card_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-[#d5e629]/40 text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809] transition-colors"

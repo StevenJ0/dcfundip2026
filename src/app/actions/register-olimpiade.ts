@@ -8,10 +8,15 @@ export async function submitOlimpiadeRegistration(
   schoolName: string,
   phoneNumber: string,
   twibbonUrl: string,
+  studentCardUrl: string,
   igUrl: string,
   paymentUrl: string
 ) {
   try {
+    if (!userId || !fullName || !schoolName || !phoneNumber || !twibbonUrl || !studentCardUrl || !igUrl || !paymentUrl) {
+      return { success: false, error: "Data pendaftaran tidak lengkap. Mohon periksa kembali form Anda." };
+    }
+
     const supabase = await createClient();
 
     // Update the auth user details securely server-side
@@ -24,7 +29,21 @@ export async function submitOlimpiadeRegistration(
     });
 
     if (updateError) {
-      return { success: false, error: `Gagal memperbarui profil: ${updateError.message}` };
+      return { success: false, error: "Gagal memperbarui profil. Silakan coba beberapa saat lagi." };
+    }
+
+    // Additionally sync with public.users
+    const { error: updatePublicError } = await supabase
+      .from("users")
+      .update({
+        full_name: fullName,
+        school_name: schoolName,
+        phone_number: phoneNumber,
+      })
+      .eq("id", userId);
+
+    if (updatePublicError) {
+      return { success: false, error: "Gagal memperbarui data profil. Silakan coba beberapa saat lagi." };
     }
 
     // 1. Verify if the user exists/is already registered
@@ -35,7 +54,7 @@ export async function submitOlimpiadeRegistration(
       .maybeSingle();
 
     if (checkError) {
-      return { success: false, error: "Gagal memverifikasi status pendaftaran." };
+      return { success: false, error: "Terjadi kesalahan saat memverifikasi status pendaftaran." };
     }
 
     if (existingUser) {
@@ -50,7 +69,7 @@ export async function submitOlimpiadeRegistration(
       .maybeSingle();
 
     if (lktiCheckError) {
-      return { success: false, error: "Gagal memverifikasi status pendaftaran LKTI silang." };
+      return { success: false, error: "Terjadi kesalahan saat memverifikasi status pendaftaran." };
     }
 
     if (lktiUser) {
@@ -64,15 +83,16 @@ export async function submitOlimpiadeRegistration(
         user_id: userId,
         payment_proof_url: paymentUrl,
         twibbon_url: twibbonUrl,
+        student_card_url: studentCardUrl,
         ig_proof_url: igUrl,
       });
 
     if (insertError) {
-      return { success: false, error: `Gagal menyimpan data partisipan: ${insertError.message}` };
+      return { success: false, error: "Gagal menyimpan data pendaftaran. Pastikan ukuran file tidak terlalu besar atau coba beberapa saat lagi." };
     }
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message || "Terjadi kesalahan pada server." };
+    return { success: false, error: "Terjadi kesalahan pada server. Silakan coba beberapa saat lagi." };
   }
 }

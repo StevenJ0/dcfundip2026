@@ -104,9 +104,6 @@ export default function LoginView() {
                 <label htmlFor="password" className="block text-sm font-medium text-on-surface-variant">
                   Password
                 </label>
-                <Link href="#" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link>
               </div>
               <div className="relative">
                 <input
