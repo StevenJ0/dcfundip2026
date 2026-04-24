@@ -1,4 +1,5 @@
 import React from "react";
+import { getLktiStatusLabel, getLktiStatusBadgeClasses, getLktiStatusDescription } from "@/utils/status-mapper";
 
 interface User {
   user_metadata: {
@@ -22,23 +23,18 @@ export function MainView({
   lktiStatus?: string
 }) {
   const fullName = user.user_metadata?.full_name || "Applicant";
-  const getStatusBadgeClasses = (status?: string) => {
-    if (status === "VERIFIED") {
-      return "bg-green-400/10 text-green-400 border-green-400/20";
-    }
-
-    if (status === "REJECTED") {
-      return "bg-red-400/10 text-red-400 border-red-400/20";
-    }
-
+  const getStatusBadgeClasses = (status?: string, isLkti?: boolean) => {
+    if (isLkti) return getLktiStatusBadgeClasses(status);
+    if (status === "VERIFIED") return "bg-green-400/10 text-green-400 border-green-400/20";
+    if (status === "REJECTED") return "bg-red-400/10 text-red-400 border-red-400/20";
     return "bg-yellow-400/10 text-yellow-400 border-yellow-400/20";
   };
 
-  const getStatusDescription = (status?: string) => {
+  const getStatusDescription = (status?: string, isLkti?: boolean) => {
+    if (isLkti) return getLktiStatusDescription(status);
     if (status === "PENDING" || !status) {
       return "Dokumen pendaftaran Anda telah diterima dan sedang dalam antrean verifikasi panitia. Mohon cek halaman ini secara berkala.";
     }
-
     return "Status pendaftaran Anda telah diperbarui. Silakan klik 'Lihat Detail Pendaftaran' untuk informasi lebih lanjut.";
   };
 
@@ -114,11 +110,11 @@ export function MainView({
             {hasLKTI && (
               <div className="mt-4">
                 <h3 className="text-white font-headline font-bold text-2xl mb-3">LKTI Nasional</h3>
-                <span className={`inline-flex border px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${getStatusBadgeClasses(lktiStatus)}`}>
-                  {lktiStatus || "PENDING"}
+                <span className={`inline-flex border px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${getStatusBadgeClasses(lktiStatus, true)}`}>
+                  {getLktiStatusLabel(lktiStatus)}
                 </span>
                 <p className="text-on-surface-variant text-sm mt-4 leading-relaxed max-w-md">
-                  {getStatusDescription(lktiStatus)}
+                  {getStatusDescription(lktiStatus, true)}
                 </p>
                 <a href="/dashboard/perlombaan/lkti" className="text-primary-container hover:underline text-sm font-bold inline-flex items-center gap-1 mt-4">
                   Lihat Detail Pendaftaran <span className="material-symbols-outlined text-[16px]">arrow_forward</span>

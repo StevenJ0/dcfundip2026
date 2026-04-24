@@ -33,7 +33,6 @@ export function LktiFormView({ user }: { user: User }) {
 
   // Section 3: Files
   const [abstractFile, setAbstractFile] = useState<File | null>(null);
-  const [pembayaranFile, setPembayaranFile] = useState<File | null>(null);
   const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
   const [instagramFile, setInstagramFile] = useState<File | null>(null);
   const [leaderCardFile, setLeaderCardFile] = useState<File | null>(null);
@@ -41,6 +40,7 @@ export function LktiFormView({ user }: { user: User }) {
   const [member2CardFile, setMember2CardFile] = useState<File | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error" | "info">("info");
@@ -62,7 +62,6 @@ export function LktiFormView({ user }: { user: User }) {
     paperTitle.trim() !== "" &&
     member1Name.trim() !== "" &&
     abstractFile !== null &&
-    pembayaranFile !== null &&
     twibbonFile !== null &&
     instagramFile !== null &&
     leaderCardFile !== null &&
@@ -99,7 +98,6 @@ export function LktiFormView({ user }: { user: User }) {
       const abstractUrl = await uploadFile(abstractFile, "abstrak");
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
       const igUrl = await uploadFile(instagramFile, "instagram");
-      const paymentUrl = await uploadFile(pembayaranFile, "bukti-bayar");
       
       const leaderCardUrl = await uploadFile(leaderCardFile, "kartu-pelajar-ketua");
       const member1CardUrl = await uploadFile(member1CardFile, "kartu-pelajar-anggota-1");
@@ -121,7 +119,6 @@ export function LktiFormView({ user }: { user: User }) {
         abstractUrl,
         twibbonUrl,
         igUrl,
-        paymentUrl,
         leaderCardUrl,
         member1CardUrl,
         member2CardUrl
@@ -131,12 +128,14 @@ export function LktiFormView({ user }: { user: User }) {
         throw new Error(submitResult.error);
       }
 
+      // Show success modal FIRST, keep button disabled during redirect delay
+      setIsRedirecting(true);
       setIsSubmitting(false);
-      showModal("Pendaftaran Berhasil", "Pendaftaran LKTI berhasil dikirim!", "success"); 
+      showModal("Pendaftaran Berhasil! 🎉", "Pendaftaran LKTI Anda berhasil dikirim! Anda akan diarahkan ke dashboard.", "success");
       setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
-      }, 2000);
+      }, 2500);
       
     } catch (err: any) {
       console.error(err);
@@ -291,31 +290,6 @@ export function LktiFormView({ user }: { user: User }) {
                 </label>
               </div>
 
-              {/* Upload Pembayaran */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-on-surface-variant ml-1">
-                  Bukti Pembayaran <span className="text-error">*</span> <br/>
-                  <span className="text-xs opacity-70">LKTI Gel 1: Rp 120.000 / Gel 2: Rp 135.000</span>
-                </label>
-                <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
-                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">
-                    payments
-                  </span>
-                  <p className="text-white font-medium mb-1">Click to upload Bukti Bayar</p>
-                  <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*,.pdf"
-                    onChange={(e) => setPembayaranFile(e.target.files?.[0] || null)}
-                  />
-                  {pembayaranFile && (
-                    <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
-                      {pembayaranFile.name}
-                    </p>
-                  )}
-                </label>
-              </div>
 
               {/* Upload Twibbon */}
               <div className="space-y-2">
@@ -448,15 +422,20 @@ export function LktiFormView({ user }: { user: User }) {
 
           <div className="flex flex-col md:flex-row items-center gap-6 pt-8 border-t border-outline-variant/30">
             <button
-              disabled={isSubmitting || !isFormValid}
+              disabled={isSubmitting || isRedirecting || !isFormValid}
               type="submit"
               className={`w-full md:w-auto px-10 py-4 rounded-xl font-headline font-extrabold text-base transition-all flex justify-center items-center gap-2 ${
-                isSubmitting || !isFormValid 
+                isSubmitting || isRedirecting || !isFormValid 
                   ? "opacity-50 cursor-not-allowed bg-surface-container-highest/50 text-white/40" 
                   : "bg-[#d5e629] text-[#001809] hover:shadow-[0_0_20px_rgba(213,230,41,0.3)] hover:-translate-y-0.5 active:scale-95"
               }`}
             >
-              {isSubmitting ? (
+              {isRedirecting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin" style={{ fontVariationSettings: "'wght' 700" }}>progress_activity</span>
+                  <span>Mengalihkan...</span>
+                </>
+              ) : isSubmitting ? (
                 <>
                   <span className="material-symbols-outlined animate-spin" style={{ fontVariationSettings: "'wght' 700" }}>progress_activity</span>
                   <span>Menyimpan...</span>

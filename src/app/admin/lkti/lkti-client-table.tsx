@@ -14,7 +14,7 @@ interface LktiItem {
   team_name: string;
   user_id: string;
   status: string;
-  payment_proof_url: string;
+  payment_proof_url?: string;
   twibbon_url: string;
   ig_proof_url: string;
   abstract_url?: string;
@@ -41,7 +41,8 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [targetId, setTargetId] = useState<string | null>(null);
   const [targetName, setTargetName] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<"VERIFIED" | "REJECTED" | null>(null);
+  const [actionType, setActionType] = useState<"ABSTRAK_PASSED" | "ABSTRAK_REJECTED" | "FINAL_VERIFIED" | "FULLPAPER_REJECTED" | null>(null);
+  const [activeTab, setActiveTab] = useState<"SELEKSI_ABSTRAK" | "VERIFIKASI_FINAL">("SELEKSI_ABSTRAK");
   const [notifyConfig, setNotifyConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -55,13 +56,21 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
   });
   const router = useRouter();
 
-  const filteredData = initialData.filter(item => 
-    item.team_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.users?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.users?.school_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = initialData.filter(item => {
+    const matchesSearch = item.team_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.users?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.users?.school_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
 
-  const handleStatusUpdate = (id: string, name: string, newStatus: "VERIFIED" | "REJECTED") => {
+    if (activeTab === "SELEKSI_ABSTRAK") {
+      return ["ABSTRAK_PENDING", "ABSTRAK_REJECTED", "ABSTRAK_PASSED"].includes(item.status);
+    } else {
+      return ["FULLPAPER_PENDING", "FULLPAPER_REJECTED", "FINAL_VERIFIED"].includes(item.status);
+    }
+  });
+
+  const handleStatusUpdate = (id: string, name: string, newStatus: "ABSTRAK_PASSED" | "ABSTRAK_REJECTED" | "FINAL_VERIFIED" | "FULLPAPER_REJECTED") => {
     setTargetId(id);
     setTargetName(name);
     setActionType(newStatus);
@@ -101,20 +110,20 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
   const isConfirmLoading = !!targetId && loadingId === targetId;
 
   const renderStatusBadge = (status: string) => {
-    if (status === "PENDING") {
+    if (status.includes("PENDING")) {
       return (
         <div className="flex items-center justify-center gap-2 bg-yellow-400/10 border border-yellow-400/20 px-3 py-1.5 rounded-full text-[10px] font-black text-yellow-400 uppercase tracking-wider w-fit">
           <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></div>
-          PENDING
+          {status.replace("_", " ")}
         </div>
       );
     }
 
-    if (status === "VERIFIED") {
+    if (status.includes("PASSED") || status === "FINAL_VERIFIED") {
       return (
         <div className="flex items-center justify-center gap-2 bg-green-400/10 border border-green-400/20 px-3 py-1.5 rounded-full text-[10px] font-black text-green-400 uppercase tracking-wider w-fit">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-          VERIFIED
+          {status.replace("_", " ")}
         </div>
       );
     }
@@ -122,7 +131,7 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
     return (
       <div className="flex items-center justify-center gap-2 bg-red-400/10 border border-red-400/20 px-3 py-1.5 rounded-full text-[10px] font-black text-red-400 uppercase tracking-wider w-fit">
         <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-        REJECTED
+        {status.replace("_", " ")}
       </div>
     );
   };
@@ -151,6 +160,30 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-[#345118]/30 pb-4">
+        <button
+          onClick={() => setActiveTab("SELEKSI_ABSTRAK")}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
+            activeTab === "SELEKSI_ABSTRAK"
+              ? "bg-[#d5e629] text-[#001809]"
+              : "bg-[#0a2510]/40 text-[#cbead1]/60 hover:text-[#cbead1]"
+          }`}
+        >
+          Tahap 1: Seleksi Abstrak
+        </button>
+        <button
+          onClick={() => setActiveTab("VERIFIKASI_FINAL")}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
+            activeTab === "VERIFIKASI_FINAL"
+              ? "bg-[#d5e629] text-[#001809]"
+              : "bg-[#0a2510]/40 text-[#cbead1]/60 hover:text-[#cbead1]"
+          }`}
+        >
+          Tahap 2: Verifikasi Final
+        </button>
+      </div>
+
       {/* Search Header */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-[#0a2510]/40 p-4 rounded-2xl border border-[#345118]/20 backdrop-blur-sm">
         <div className="relative w-full md:w-[400px] group">
@@ -178,11 +211,15 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">No</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40">Info Tim</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Abstrak</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Bayar</th>
+                  {activeTab === "VERIFIKASI_FINAL" && (
+                    <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Bayar</th>
+                  )}
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Kartu Ketua</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Twibbon</th>
                   <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">IG</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Full Paper</th>
+                  {activeTab === "VERIFIKASI_FINAL" && (
+                    <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Full Paper</th>
+                  )}
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Status</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#d5e629]/40 text-center">Verifikasi</th>
                 </tr>
@@ -216,11 +253,11 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                       <span className="text-[9px] font-black text-[#d5e629]/40 uppercase tracking-widest block mb-2">Dokumen Tim</span>
                       <div className="flex gap-2 flex-wrap">
                         {renderDocButton(item.abstract_url, <FileText size={14} />, "Abstrak", "bg-purple-400/10 border border-purple-400/30 text-purple-400 hover:bg-purple-400 hover:text-white")}
-                        {renderDocButton(item.payment_proof_url, <ExternalLink size={14} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
+                        {activeTab === "VERIFIKASI_FINAL" && renderDocButton(item.payment_proof_url, <ExternalLink size={14} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
                         {renderDocButton(item.student_card_url, <span className="font-bold text-[10px]">K</span>, "Kartu Ketua", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                         {renderDocButton(item.twibbon_url, <span className="font-bold text-[10px]">T</span>, "Twibbon", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                         {renderDocButton(item.ig_proof_url, <CiInstagram size={14} />, "Instagram", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
-                        {renderDocButton(item.paper_url, <Download size={14} />, "Full Paper", "bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-400 hover:text-white")}
+                        {activeTab === "VERIFIKASI_FINAL" && renderDocButton(item.paper_url, <Download size={14} />, "Full Paper", "bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-400 hover:text-white")}
                       </div>
                     </td>
 
@@ -228,9 +265,11 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                     <td className="hidden lg:table-cell px-4 py-5 align-middle">
                       {renderDocButton(item.abstract_url, <FileText size={16} />, "Abstrak", "bg-purple-400/10 border border-purple-400/30 text-purple-400 hover:bg-purple-400 hover:text-white")}
                     </td>
-                    <td className="hidden lg:table-cell px-4 py-5 align-middle">
-                      {renderDocButton(item.payment_proof_url, <ExternalLink size={16} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
-                    </td>
+                    {activeTab === "VERIFIKASI_FINAL" && (
+                      <td className="hidden lg:table-cell px-4 py-5 align-middle">
+                        {renderDocButton(item.payment_proof_url, <ExternalLink size={16} />, "Bukti Bayar", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-[#d5e629] hover:text-[#001809]")}
+                      </td>
+                    )}
                     <td className="hidden lg:table-cell px-4 py-5 align-middle">
                       {renderDocButton(item.student_card_url, <span className="font-bold text-[12px]">K</span>, "Kartu Ketua", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-white hover:text-[#001809]")}
                     </td>
@@ -240,9 +279,11 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                     <td className="hidden lg:table-cell px-4 py-5 align-middle">
                       {renderDocButton(item.ig_proof_url, <CiInstagram size={16} />, "Instagram", "bg-[#345118]/20 border border-[#345118] text-[#d5e629] hover:bg-gradient-to-tr hover:from-orange-500 hover:via-pink-500 hover:to-purple-500 hover:text-white hover:border-transparent")}
                     </td>
-                    <td className="hidden lg:table-cell px-4 py-5 align-middle">
-                      {renderDocButton(item.paper_url, <Download size={16} />, "Full Paper", "bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-400 hover:text-white")}
-                    </td>
+                    {activeTab === "VERIFIKASI_FINAL" && (
+                      <td className="hidden lg:table-cell px-4 py-5 align-middle">
+                        {renderDocButton(item.paper_url, <Download size={16} />, "Full Paper", "bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-400 hover:text-white")}
+                      </td>
+                    )}
 
                     {/* Kolom Status */}
                     <td className="block lg:table-cell px-6 py-5 align-middle">
@@ -268,21 +309,21 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
                               <Eye size={14} strokeWidth={2.5} /> DETAIL
                             </button>
                             <button 
-                              onClick={() => handleStatusUpdate(item.id, item.team_name, "VERIFIED")}
-                              disabled={item.status === "VERIFIED"}
+                              onClick={() => handleStatusUpdate(item.id, item.team_name, activeTab === "SELEKSI_ABSTRAK" ? "ABSTRAK_PASSED" : "FINAL_VERIFIED")}
+                              disabled={item.status === "ABSTRAK_PASSED" || item.status === "FINAL_VERIFIED"}
                               className={`flex-1 lg:flex-none px-4 py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-                                item.status === "VERIFIED" 
+                                item.status === "ABSTRAK_PASSED" || item.status === "FINAL_VERIFIED"
                                   ? "bg-green-400/10 text-green-400/30 border border-green-400/10 cursor-not-allowed"
                                   : "bg-green-400/10 text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-[#001809] hover:shadow-[0_0_15px_rgba(74,222,128,0.2)]"
                               }`}
                             >
-                              <Check size={14} strokeWidth={3} /> VERIFY
+                              <Check size={14} strokeWidth={3} /> {activeTab === "SELEKSI_ABSTRAK" ? "LOLOS ABSTRAK" : "VERIFY"}
                             </button>
                             <button 
-                              onClick={() => handleStatusUpdate(item.id, item.team_name, "REJECTED")}
-                              disabled={item.status === "REJECTED"}
+                              onClick={() => handleStatusUpdate(item.id, item.team_name, activeTab === "SELEKSI_ABSTRAK" ? "ABSTRAK_REJECTED" : "FULLPAPER_REJECTED")}
+                              disabled={item.status === "ABSTRAK_REJECTED" || item.status === "FULLPAPER_REJECTED"}
                               className={`flex-1 lg:flex-none px-4 py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-                                item.status === "REJECTED" 
+                                item.status === "ABSTRAK_REJECTED" || item.status === "FULLPAPER_REJECTED"
                                   ? "bg-red-400/10 text-red-400/30 border border-red-400/10 cursor-not-allowed"
                                   : "bg-red-400/10 text-red-400 border border-red-400/30 hover:bg-red-400 hover:text-white hover:shadow-[0_0_15px_rgba(248,113,113,0.2)]"
                               }`}
@@ -313,15 +354,15 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
         isOpen={isConfirmModalOpen && !!targetId && !!actionType}
         onClose={closeConfirmModal}
         onConfirm={executeStatusUpdate}
-        title={actionType === "VERIFIED" ? "Verifikasi Pendaftaran" : "Tolak Pendaftaran"}
+        title={actionType === "ABSTRAK_PASSED" || actionType === "FINAL_VERIFIED" ? "Verifikasi Pendaftaran" : "Tolak Pendaftaran"}
         message={
-          actionType === "VERIFIED"
-            ? `Apakah Anda yakin ingin memverifikasi pendaftaran ${targetName || "peserta ini"}? Status akan berubah menjadi VERIFIED.`
-            : `Apakah Anda yakin ingin menolak pendaftaran ${targetName || "peserta ini"}? Status akan berubah menjadi REJECTED dan peserta harus memperbaiki datanya.`
+          actionType === "ABSTRAK_PASSED" || actionType === "FINAL_VERIFIED"
+            ? `Apakah Anda yakin ingin memverifikasi pendaftaran ${targetName || "peserta ini"}? Status akan berubah menjadi ${actionType.replace("_", " ")}.`
+            : `Apakah Anda yakin ingin menolak pendaftaran ${targetName || "peserta ini"}? Status akan berubah menjadi ${actionType?.replace("_", " ")} dan peserta harus memperbaiki datanya.`
         }
         confirmText="Ya, Ubah Status"
         cancelText="Batal"
-        actionType={actionType === "VERIFIED" ? "success" : "danger"}
+        actionType={actionType === "ABSTRAK_PASSED" || actionType === "FINAL_VERIFIED" ? "success" : "danger"}
         isLoading={isConfirmLoading}
       />
 
@@ -435,15 +476,15 @@ export function LktiClientTable({ initialData }: { initialData: LktiItem[] }) {
             <section className="pt-2 border-t border-[#345118]/30">
               <div className="flex flex-wrap gap-2 justify-end">
                 <button
-                  onClick={() => handleStatusUpdate(selectedTeam.id, selectedTeam.team_name, "VERIFIED")}
-                  disabled={loadingId === selectedTeam.id || selectedTeam.status === "VERIFIED"}
+                  onClick={() => handleStatusUpdate(selectedTeam.id, selectedTeam.team_name, activeTab === "SELEKSI_ABSTRAK" ? "ABSTRAK_PASSED" : "FINAL_VERIFIED")}
+                  disabled={loadingId === selectedTeam.id || selectedTeam.status === "ABSTRAK_PASSED" || selectedTeam.status === "FINAL_VERIFIED"}
                   className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-green-400/10 text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-[#001809] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Check size={14} strokeWidth={3} /> VERIFY
+                  <Check size={14} strokeWidth={3} /> {activeTab === "SELEKSI_ABSTRAK" ? "LOLOS ABSTRAK" : "VERIFY"}
                 </button>
                 <button
-                  onClick={() => handleStatusUpdate(selectedTeam.id, selectedTeam.team_name, "REJECTED")}
-                  disabled={loadingId === selectedTeam.id || selectedTeam.status === "REJECTED"}
+                  onClick={() => handleStatusUpdate(selectedTeam.id, selectedTeam.team_name, activeTab === "SELEKSI_ABSTRAK" ? "ABSTRAK_REJECTED" : "FULLPAPER_REJECTED")}
+                  disabled={loadingId === selectedTeam.id || selectedTeam.status === "ABSTRAK_REJECTED" || selectedTeam.status === "FULLPAPER_REJECTED"}
                   className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-red-400/10 text-red-400 border border-red-400/30 hover:bg-red-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X size={14} strokeWidth={3} /> REJECT

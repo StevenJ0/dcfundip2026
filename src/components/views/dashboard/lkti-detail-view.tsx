@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { submitFullPaper } from "@/app/actions/upload-full-paper";
+import { submitFullPaperLkti } from "@/app/actions/submit-fullpaper-lkti";
 import { resubmitLKTIRegistration } from "@/app/actions/resubmit-lkti";
 import { updateUserProfile } from "@/app/actions/update-profile";
 import { ModalNotify } from "@/components/ui/modal-notify";
 import { IdCard } from "lucide-react";
+import { getLktiStatusLabel, getLktiStatusDescription } from "@/utils/status-mapper";
 
 interface User {
   id: string;
@@ -24,7 +25,7 @@ interface User {
 interface LktiRecord {
   id: string;
   status: string;
-  payment_proof_url: string;
+  payment_proof_url?: string;
   twibbon_url: string;
   ig_proof_url: string;
   abstract_url?: string;
@@ -81,8 +82,6 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
     setIsModalOpen(true);
   };
 
-  console.log(data)
-
 
   const handleSaveProfile = async () => {
     if (!profileForm.fullName || !profileForm.schoolName || !profileForm.phoneNumber) {
@@ -108,17 +107,16 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
     abstractFile !== null &&
     twibbonFile !== null &&
     instagramFile !== null &&
-    paymentFile !== null &&
     leaderCardFile !== null &&
     member1CardFile !== null &&
     (member2Name.trim() === "" || member2CardFile !== null);
 
-  const isRejected = data.status === "REJECTED";
-  const isReadOnly = data.status === "PENDING" || data.status === "VERIFIED";
+  const isRejected = data.status === "ABSTRAK_REJECTED" || data.status === "FULLPAPER_REJECTED";
+  const isReadOnly = data.status === "ABSTRAK_PENDING" || data.status === "FULLPAPER_PENDING" || data.status === "FINAL_VERIFIED" || data.status === "ABSTRAK_PASSED";
 
   const handleUploadFullPaper = async () => {
-    if (!fullPaperFile) {
-      showModal("Gagal", "Pilih file Full Paper terlebih dahulu.", "error");
+    if (!fullPaperFile || !paymentFile) {
+      showModal("Gagal", "Pilih file Full Paper dan Bukti Pembayaran terlebih dahulu.", "error");
       return;
     }
 
@@ -126,29 +124,36 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
 
     try {
       const supabase = createClient();
-      const filePath = `lkti/${user.id}/full-paper/${Date.now()}_${fullPaperFile.name}`;
-      const { error: fileUploadError } = await supabase.storage.from("dcf_files").upload(filePath, fullPaperFile);
+      
+      const uploadFile = async (file: File, folder: string) => {
+        const filePath = `lkti/${user.id}/${folder}/${Date.now()}_${file.name}`;
+        const { error: fileUploadError } = await supabase.storage.from("dcf_files").upload(filePath, file);
+        if (fileUploadError) {
+          throw new Error(`Gagal mengunggah ${folder}: ${fileUploadError.message}`);
+        }
+        const { data: fileData } = supabase.storage.from("dcf_files").getPublicUrl(filePath);
+        return fileData.publicUrl;
+      };
 
-      if (fileUploadError) {
-        throw new Error(`Gagal mengunggah file: ${fileUploadError.message}`);
-      }
+      const paperUrl = await uploadFile(fullPaperFile, "full-paper");
+      const paymentUrl = await uploadFile(paymentFile, "bukti-bayar");
 
-      const { data: uploadData } = supabase.storage.from("dcf_files").getPublicUrl(filePath);
-      const submitResult = await submitFullPaper(user.id, uploadData.publicUrl);
+      const submitResult = await submitFullPaperLkti(user.id, paymentUrl, paperUrl);
 
       if (!submitResult.success) {
         throw new Error(submitResult.error);
       }
 
-      showModal("Berhasil", "Full Paper berhasil dikumpulkan!", "success");
+      showModal("Berhasil", "Bukti Pembayaran dan Full Paper berhasil dikumpulkan!", "success");
       setFullPaperFile(null);
+      setPaymentFile(null);
       setTimeout(() => {
         setIsModalOpen(false);
         router.refresh();
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      showModal("Gagal", err.message || "Terjadi kesalahan saat mengunggah Full Paper.", "error");
+      showModal("Gagal", err.message || "Terjadi kesalahan saat mengunggah Full Paper dan Pembayaran.", "error");
     } finally {
       setIsUploading(false);
     }
@@ -181,7 +186,6 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
       const abstractUrl = await uploadFile(abstractFile, "abstrak");
       const twibbonUrl = await uploadFile(twibbonFile, "twibbon");
       const igUrl = await uploadFile(instagramFile, "instagram");
-      const paymentUrl = await uploadFile(paymentFile, "bukti-bayar");
       
       const leaderCardUrl = await uploadFile(leaderCardFile, "kartu-pelajar-ketua");
       const member1CardUrl = await uploadFile(member1CardFile, "kartu-pelajar-anggota-1");
@@ -199,7 +203,6 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
         abstractUrl,
         twibbonUrl,
         igUrl,
-        paymentUrl,
         leaderCardUrl,
         member1CardUrl,
         member2CardUrl
@@ -227,22 +230,29 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
       <div className="relative z-10 space-y-10">
-        <div className="flex items-center gap-4 border-b border-outline-variant/30 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 border-b border-outline-variant/30 pb-6">
           <h2 className="text-xl font-headline font-bold text-white">Status Pendaftaran: </h2>
-          {data.status === "PENDING" ? (
-            <span className="inline-flex bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-4 py-2 rounded-full text-sm font-bold tracking-wide uppercase">
-              Menunggu Verifikasi
-            </span>
-          ) : data.status === "VERIFIED" ? (
-            <span className="inline-flex bg-green-500/20 text-green-300 border border-green-500/30 px-4 py-2 rounded-full text-sm font-bold tracking-wide uppercase">
-              Terverifikasi
-            </span>
-          ) : (
-            <span className="inline-flex bg-red-500/20 text-red-300 border border-red-500/30 px-4 py-2 rounded-full text-sm font-bold tracking-wide uppercase">
-              Ditolak
-            </span>
-          )}
+          {(() => {
+            const isGreen = data.status === "ABSTRAK_PASSED" || data.status === "FINAL_VERIFIED";
+            const isRed = data.status === "ABSTRAK_REJECTED" || data.status === "FULLPAPER_REJECTED";
+            const colorClass = isGreen
+              ? "bg-green-500/20 text-green-300 border-green-500/30"
+              : isRed
+              ? "bg-red-500/20 text-red-300 border-red-500/30"
+              : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
+            return (
+              <span className={`inline-flex border px-4 py-2 rounded-full text-sm font-bold tracking-wide text-center justify-center ${colorClass}`}>
+                {getLktiStatusLabel(data.status)}
+              </span>
+            );
+          })()}
         </div>
+
+        {(data.status === "ABSTRAK_PENDING" || data.status === "FULLPAPER_PENDING") && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 p-5 rounded-2xl font-semibold">
+            {getLktiStatusDescription(data.status)}
+          </div>
+        )}
 
         {isRejected && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-200 p-5 rounded-2xl font-semibold">
@@ -382,15 +392,17 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                 Dokumen Terunggah
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
-                  <span className="material-symbols-outlined text-3xl text-[#d5e629] mb-4">payments</span>
-                  <div>
-                    <p className="text-sm font-bold text-white mb-3">Bukti Pembayaran</p>
-                    <a href={data.payment_proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-surface-container bg-primary-container hover:bg-primary-container/80 transition-colors px-4 py-2 rounded-lg">
-                      Buka Dokumen <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                    </a>
+                {data.payment_proof_url && (
+                  <div className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
+                    <span className="material-symbols-outlined text-3xl text-[#d5e629] mb-4">payments</span>
+                    <div>
+                      <p className="text-sm font-bold text-white mb-3">Bukti Pembayaran</p>
+                      <a href={data.payment_proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-surface-container bg-primary-container hover:bg-primary-container/80 transition-colors px-4 py-2 rounded-lg">
+                        Buka Dokumen <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                      </a>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="bg-surface-container-highest/30 p-6 rounded-2xl border border-outline-variant/20 flex flex-col justify-between">
                   <span className="material-symbols-outlined text-3xl text-[#d5e629] mb-4">frame_person</span>
@@ -437,40 +449,64 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                     Buka Dokumen <span className="material-symbols-outlined text-[16px]">open_in_new</span>
                   </a>
                 </div>
-              ) : (
+              ) : data.status === "ABSTRAK_PASSED" || data.status === "FULLPAPER_REJECTED" ? (
                 <div className="bg-surface-container-highest/20 p-6 rounded-2xl border border-outline-variant/30">
-                  {uploadError && (
+                  {uploadError && ( 
                     <div className="mb-6 p-4 bg-error-container text-on-error-container rounded-xl font-medium text-sm">
                       {uploadError}
                     </div>
                   )}
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-on-surface-variant ml-1">
-                        Upload Dokumen Full Paper <span className="text-error">*</span>
-                      </label>
-                      <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
-                        <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">upload_file</span>
-                        <p className="text-white font-medium mb-1">Click to upload Full Paper</p>
-                        <p className="text-on-surface-variant text-xs">Hanya jika Anda lolos ke tahap Full Paper. (PDF max. 10MB)</p>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf"
-                          onChange={(e) => setFullPaperFile(e.target.files?.[0] || null)}
-                        />
-                        {fullPaperFile && (
-                          <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
-                            {fullPaperFile.name}
-                          </p>
-                        )}
-                      </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-on-surface-variant ml-1">
+                          Upload Dokumen Full Paper <span className="text-error">*</span>
+                        </label>
+                        <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">upload_file</span>
+                          <p className="text-white font-medium mb-1">Click to upload Full Paper</p>
+                          <p className="text-on-surface-variant text-xs">(PDF max. 10MB)</p>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf"
+                            onChange={(e) => setFullPaperFile(e.target.files?.[0] || null)}
+                          />
+                          {fullPaperFile && (
+                            <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                              {fullPaperFile.name}
+                            </p>
+                          )}
+                        </label>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-on-surface-variant ml-1">
+                          Upload Bukti Pembayaran <span className="text-error">*</span>
+                        </label>
+                        <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">payments</span>
+                          <p className="text-white font-medium mb-1">Click to upload Bukti Bayar</p>
+                          <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*,.pdf"
+                            onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
+                          />
+                          {paymentFile && (
+                            <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
+                              {paymentFile.name}
+                            </p>
+                          )}
+                        </label>
+                      </div>
                     </div>
 
                     <div className="flex justify-start">
                       <button
                         onClick={handleUploadFullPaper}
-                        disabled={isUploading || !fullPaperFile}
+                        disabled={isUploading || !fullPaperFile || !paymentFile}
                         className="bg-[#d5e629] text-[#001809] px-8 py-3 rounded-xl font-headline font-bold text-sm transition-all hover:shadow-[0_0_20px_rgba(213,230,41,0.3)] hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isUploading ? (
@@ -481,14 +517,14 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                         ) : (
                           <>
                             <span className="material-symbols-outlined">cloud_upload</span>
-                            <span>Upload Full Paper</span>
+                            <span>Upload Berkas</span>
                           </>
                         )}
                       </button>
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </>
         )}
@@ -619,28 +655,6 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                     </label>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-on-surface-variant ml-1">
-                      Bukti Pembayaran <span className="text-error">*</span>
-                    </label>
-                    <label className="w-full border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors group cursor-pointer block text-center min-h-[220px]">
-                      <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 group-hover:text-primary-container transition-colors">payments</span>
-                      <p className="text-white font-medium mb-1">Click to upload Bukti Bayar</p>
-                      <p className="text-on-surface-variant text-xs">PDF, JPG or PNG (max. 5MB)</p>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
-                        required
-                      />
-                      {paymentFile && (
-                        <p className="text-primary-container mt-4 text-sm font-bold bg-primary-container/10 px-4 py-2 rounded-lg">
-                          {paymentFile.name}
-                        </p>
-                      )}
-                    </label>
-                  </div>
 
                   {/* Upload Kartu Pelajar Ketua */}
                   <div className="space-y-2">

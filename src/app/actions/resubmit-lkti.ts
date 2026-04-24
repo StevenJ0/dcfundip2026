@@ -11,13 +11,12 @@ export async function resubmitLKTIRegistration(
   abstractUrl: string,
   twibbonUrl: string,
   igUrl: string,
-  paymentUrl: string,
   leaderCardUrl: string,
   member1CardUrl: string,
   member2CardUrl: string
 ) {
   try {
-    if (!teamId || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !paymentUrl || !leaderCardUrl || !member1CardUrl) {
+    if (!teamId || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !leaderCardUrl || !member1CardUrl) {
       return { success: false, error: "Data revisi tidak lengkap. Mohon lengkapi semua dokumen yang diperlukan." };
     }
 
@@ -47,9 +46,8 @@ export async function resubmitLKTIRegistration(
         abstract_url: abstractUrl,
         twibbon_url: twibbonUrl,
         ig_proof_url: igUrl,
-        payment_proof_url: paymentUrl,
         student_card_url: leaderCardUrl,
-        status: "PENDING",
+        status: "ABSTRAK_PENDING",
       })
       .eq("id", teamId);
 

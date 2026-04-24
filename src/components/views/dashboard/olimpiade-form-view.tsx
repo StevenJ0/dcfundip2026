@@ -30,6 +30,7 @@ export function OlimpiadeFormView({ user }: { user: User }) {
   const [phoneNumber, setPhoneNumber] = useState(user.user_metadata?.phone_number || "");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"success" | "error" | "info">("info");
@@ -100,17 +101,16 @@ export function OlimpiadeFormView({ user }: { user: User }) {
         throw new Error(submitResult.error);
       }
 
-      // 1. Matikan dulu efek loading-nya agar tombol kembali normal
+      // Show success modal FIRST, keep button disabled
+      setIsRedirecting(true);
       setIsSubmitting(false);
+      showModal("Pendaftaran Berhasil! 🎉", "Pendaftaran Olimpiade Anda berhasil dikirim! Anda akan diarahkan ke dashboard.", "success");
 
-      // 2. Beri jeda/feedback ke user
-      showModal("Berhasil", "Pendaftaran Olimpiade berhasil!", "success");
-
-      // 3. Pindah halaman
+      // Delay redirect so the user can read the success message
       setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
-      }, 2000);
+      }, 2500);
       
     } catch (err: any) {
       console.error(err);
@@ -292,15 +292,20 @@ export function OlimpiadeFormView({ user }: { user: User }) {
 
           <div className="flex flex-col md:flex-row items-center gap-6 pt-8 border-t border-outline-variant/30">
             <button
-              disabled={isSubmitting || !isFormValid}
+              disabled={isSubmitting || isRedirecting || !isFormValid}
               type="submit"
               className={`w-full md:w-auto px-10 py-4 rounded-xl font-headline font-extrabold text-base transition-all flex justify-center items-center gap-2 ${
-                isSubmitting || !isFormValid
+                isSubmitting || isRedirecting || !isFormValid
                   ? "opacity-50 cursor-not-allowed bg-surface-container-highest/50 text-white/40"
                   : "bg-[#d5e629] text-[#001809] hover:shadow-[0_0_20px_rgba(213,230,41,0.3)] hover:-translate-y-0.5 active:scale-95"
               }`}
             >
-              {isSubmitting ? (
+              {isRedirecting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin" style={{ fontVariationSettings: "'wght' 700" }}>progress_activity</span>
+                  <span>Mengalihkan...</span>
+                </>
+              ) : isSubmitting ? (
                 <>
                   <span className="material-symbols-outlined animate-spin" style={{ fontVariationSettings: "'wght' 700" }}>progress_activity</span>
                   <span>Menyimpan...</span>

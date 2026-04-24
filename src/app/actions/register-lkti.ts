@@ -14,13 +14,12 @@ export async function submitLKTIRegistration(
   abstractUrl: string,
   twibbonUrl: string,
   igUrl: string,
-  paymentUrl: string,
   leaderCardUrl: string,
   member1CardUrl: string,
   member2CardUrl: string
 ) {
   try {
-    if (!userId || !leaderName || !schoolName || !phoneNumber || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !paymentUrl || !leaderCardUrl || !member1CardUrl) {
+    if (!userId || !leaderName || !schoolName || !phoneNumber || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !leaderCardUrl || !member1CardUrl) {
       throw new Error("Data pendaftaran tidak lengkap. Mohon periksa kembali form Anda.");
     }
 
@@ -94,8 +93,8 @@ export async function submitLKTIRegistration(
         abstract_url: abstractUrl,
         twibbon_url: twibbonUrl,
         ig_proof_url: igUrl,
-        payment_proof_url: paymentUrl,
         student_card_url: leaderCardUrl,
+        status: 'ABSTRAK_PENDING'
       })
       .select("id")
       .single();
