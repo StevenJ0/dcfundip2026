@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { submitOlimpiadeRegistration } from "@/app/actions/register-olimpiade";
 import { ModalNotify } from "@/components/ui/modal-notify";
+import { PaymentInstructionCard } from "@/components/ui/payment-instruction-card";
 
 interface User {
   id: string;
@@ -188,6 +189,9 @@ export function OlimpiadeFormView({ user }: { user: User }) {
           </h2>
 
           <div className="grid grid-cols-1 gap-8">
+            {/* Payment Info Card */}
+            <PaymentInstructionCard />
+
             {/* Upload Pembayaran */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-on-surface-variant ml-1">

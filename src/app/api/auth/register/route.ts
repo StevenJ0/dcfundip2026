@@ -25,19 +25,28 @@ export async function POST(request: Request) {
         if (error) {
             return NextResponse.json({ error: translateAuthError(error.message) }, { status: 400 });
         }
-
-        // Insert into public.users directly using service role key
         if (authData?.user?.id) {
-            const supabaseAdmin = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!
-            );
-            await supabaseAdmin.from('users').upsert({
-                id: authData.user.id,
-                full_name: fullName,
-                school_name: schoolName,
-                phone_number: phoneNumber
-            }, { onConflict: 'id' });
+            try {
+                const supabaseAdmin = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.SUPABASE_SERVICE_ROLE_KEY!
+                );
+                const { error: upsertError } = await supabaseAdmin.from('users').upsert({
+                    id: authData.user.id,
+                    full_name: fullName,
+                    school_name: schoolName,
+                    phone_number: phoneNumber
+                }, { onConflict: 'id' });
+
+                if (upsertError) {
+                    // Profile sync failed but auth already succeeded — log only.
+                    console.error('[Register] Profile upsert error:', upsertError.message);
+                }
+            } catch (upsertException) {
+                // Catches misconfigured env vars or network errors on the admin client.
+                // Do NOT rethrow — auth signup succeeded, return 200 to the client.
+                console.error('[Register] Profile upsert exception:', upsertException);
+            }
         }
 
         return NextResponse.json({ message: "Register successful" }, { status: 200 });

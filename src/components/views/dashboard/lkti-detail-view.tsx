@@ -9,6 +9,7 @@ import { resubmitLKTIRegistration } from "@/app/actions/resubmit-lkti";
 import { updateUserProfile } from "@/app/actions/update-profile";
 import { ModalNotify } from "@/components/ui/modal-notify";
 import { IdCard } from "lucide-react";
+import { PaymentInstructionCard } from "@/components/ui/payment-instruction-card";
 import { getLktiStatusLabel, getLktiStatusDescription } from "@/utils/status-mapper";
 
 interface User {
@@ -457,6 +458,9 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                     </div>
                   )}
                   <div className="space-y-6">
+                    {/* Payment Info Card */}
+                    <PaymentInstructionCard />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-on-surface-variant ml-1">
