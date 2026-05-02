@@ -84,13 +84,13 @@ export default function Footer() {
               { label: 'Guidebook Olimpiade',   href: 'https://drive.google.com/file/d/1irLUd55rOlYB0ZUsj2AsbZaOjYMo4u_L/view?usp=sharing' },
             ].map((link) => (
               <li key={link.label}>
-                <Link
+                <a
                   href={link.href}
                   className="text-[#cbead1]/70 hover:text-[#d5e629] transition-colors flex items-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">description</span>
                   {link.label}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>
