@@ -23,6 +23,8 @@ export async function POST(request: Request) {
         });
 
         if (error) {
+            console.error('[Register] Sign up error:', error.message);
+            console.log('DEBUG: Raw error object:', JSON.stringify(error, null, 2));
             return NextResponse.json({ error: translateAuthError(error.message) }, { status: 400 });
         }
         if (authData?.user?.id) {
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
                 );
                 const { error: upsertError } = await supabaseAdmin.from('users').upsert({
                     id: authData.user.id,
+                    email: email,
                     full_name: fullName,
                     school_name: schoolName,
                     phone_number: phoneNumber

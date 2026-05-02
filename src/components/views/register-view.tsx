@@ -23,6 +23,7 @@ export default function RegisterView() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+
   const showModal = (title: string, message: string, type: "success" | "error" | "info") => {
     setModalTitle(title);
     setModalMessage(message);
@@ -80,7 +81,7 @@ export default function RegisterView() {
       if (!res.ok) {
         showModal("Registrasi Gagal", data.error || "Registration failed", "error");
       } else {
-        showModal("Registrasi Berhasil", "Account created successfully! Please check your email to verify your account.", "success");
+        showModal("Registrasi Berhasil", "Account created successfully!", "success");
         // Optional: Clear form
         setFullName('');
         setEmail('');
