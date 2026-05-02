@@ -80,8 +80,8 @@ export default function Footer() {
           <h5 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Dokumen</h5>
           <ul className="space-y-3">
             {[
-              { label: 'Guidebook',     href: '#' },
-              { label: 'Persyaratan',   href: '#' },
+              { label: 'Guidebook LKTI',     href: 'https://drive.google.com/file/d/1swRR6K7iU_Z7Abo1DFNyZ_DYL8JPtZ3a/view?usp=sharing' },
+              { label: 'Guidebook Olimpiade',   href: 'https://drive.google.com/file/d/1irLUd55rOlYB0ZUsj2AsbZaOjYMo4u_L/view?usp=sharing' },
             ].map((link) => (
               <li key={link.label}>
                 <Link
