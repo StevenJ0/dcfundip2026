@@ -2,6 +2,12 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+// ============================================================
+// COMPETITION REGISTRATION TOGGLE
+// Set to `true` to re-open Gelombang 2 registration.
+// ============================================================
+const IS_COMPETITION_OPEN = false;
+
 export async function submitLKTIRegistration(
   userId: string,
   leaderName: string,
@@ -19,6 +25,14 @@ export async function submitLKTIRegistration(
   member2CardUrl: string
 ) {
   try {
+    // Guard: reject submission if registration period is closed.
+    if (!IS_COMPETITION_OPEN) {
+      return {
+        success: false,
+        error: "Pendaftaran lomba Gelombang 1 telah ditutup. Silakan tunggu Gelombang 2 pada 6 Juli 2026.",
+      };
+    }
+
     if (!userId || !leaderName || !schoolName || !phoneNumber || !teamName || !paperTitle || !member1Name || !abstractUrl || !twibbonUrl || !igUrl || !leaderCardUrl || !member1CardUrl) {
       throw new Error("Data pendaftaran tidak lengkap. Mohon periksa kembali form Anda.");
     }

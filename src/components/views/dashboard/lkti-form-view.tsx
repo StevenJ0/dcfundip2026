@@ -6,6 +6,12 @@ import { createClient } from "@/utils/supabase/client";
 import { submitLKTIRegistration } from "@/app/actions/register-lkti";
 import { ModalNotify } from "@/components/ui/modal-notify";
 
+// ============================================================
+// COMPETITION REGISTRATION TOGGLE
+// Set to `true` to re-open Gelombang 2 registration.
+// ============================================================
+const IS_COMPETITION_OPEN = false;
+
 interface User {
   id: string;
   email?: string;
@@ -143,6 +149,27 @@ export function LktiFormView({ user }: { user: User }) {
       setIsSubmitting(false); 
     }
   };
+
+  // Guard: show closed message if registration is not open.
+  // All hooks above are unconditionally called to respect React hook rules.
+  if (!IS_COMPETITION_OPEN) {
+    return (
+      <div className="bg-surface-container p-8 md:p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col items-start gap-6">
+        <div className="flex items-center gap-3">
+          <span className="text-4xl" role="img" aria-label="lock">🔒</span>
+          <h2 className="text-3xl font-headline font-bold text-white leading-tight">
+            Pendaftaran Gelombang 1 Ditutup
+          </h2>
+        </div>
+        <p className="text-on-surface-variant text-base leading-relaxed max-w-xl">
+          Pendaftaran lomba Gelombang 1 DCF 2026 telah berakhir. Kami akan membuka kembali
+          pendaftaran Gelombang 2 pada tanggal{" "}
+          <span className="text-white font-semibold">6 Juli 2026</span>.
+          Silakan persiapkan berkas tim Anda!
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-surface-container p-8 md:p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">

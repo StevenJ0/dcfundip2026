@@ -2,6 +2,12 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+// ============================================================
+// COMPETITION REGISTRATION TOGGLE
+// Set to `true` to re-open Gelombang 2 registration.
+// ============================================================
+const IS_COMPETITION_OPEN = false;
+
 export async function submitOlimpiadeRegistration(
   userId: string,
   fullName: string,
@@ -13,6 +19,14 @@ export async function submitOlimpiadeRegistration(
   paymentUrl: string
 ) {
   try {
+    // Guard: reject submission if registration period is closed.
+    if (!IS_COMPETITION_OPEN) {
+      return {
+        success: false,
+        error: "Pendaftaran lomba Gelombang 1 telah ditutup. Silakan tunggu Gelombang 2 pada 6 Juli 2026.",
+      };
+    }
+
     if (!userId || !fullName || !schoolName || !phoneNumber || !twibbonUrl || !studentCardUrl || !igUrl || !paymentUrl) {
       return { success: false, error: "Data pendaftaran tidak lengkap. Mohon periksa kembali form Anda." };
     }
