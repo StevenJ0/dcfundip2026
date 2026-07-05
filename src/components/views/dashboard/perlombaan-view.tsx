@@ -4,7 +4,7 @@ import Link from "next/link";
 // COMPETITION REGISTRATION TOGGLE
 // Set to `true` to re-open Gelombang 2 registration.
 // ============================================================
-const IS_COMPETITION_OPEN = false;
+const IS_COMPETITION_OPEN = true;
 
 export function PerlombaanView({
   isRegisteredOlimpiade,
