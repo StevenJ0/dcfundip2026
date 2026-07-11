@@ -87,7 +87,8 @@ export function LktiFormView({ user }: { user: User }) {
       const supabase = createClient();
       
       const uploadFile = async (file: File, folder: string) => {
-        const filePath = `lkti/${user.id}/${folder}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const filePath = `lkti/${user.id}/${folder}/${Date.now()}_${sanitizedFileName}`;
         const { error: uploadError } = await supabase.storage
           .from("dcf_files")
           .upload(filePath, file);
