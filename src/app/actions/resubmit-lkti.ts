@@ -2,6 +2,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+/**
+ * Handles ABSTRAK revision re-submission only.
+ * Resets team status to ABSTRAK_PENDING so the abstrak goes through review again.
+ * For Full Paper re-uploads (FULLPAPER_REJECTED → FULLPAPER_PENDING), use submitFullPaperLkti instead.
+ */
 export async function resubmitLKTIRegistration(
   teamId: string,
   teamName: string,

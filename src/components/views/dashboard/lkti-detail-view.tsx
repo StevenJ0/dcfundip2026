@@ -112,8 +112,10 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
     member1CardFile !== null &&
     (member2Name.trim() === "" || member2CardFile !== null);
 
-  const isRejected = data.status === "ABSTRAK_REJECTED" || data.status === "FULLPAPER_REJECTED";
-  const isReadOnly = data.status === "ABSTRAK_PENDING" || data.status === "FULLPAPER_PENDING" || data.status === "FINAL_VERIFIED" || data.status === "ABSTRAK_PASSED";
+  const isAbstrakRejected = data.status === "ABSTRAK_REJECTED";
+  const isFullPaperRejected = data.status === "FULLPAPER_REJECTED";
+  const isRejected = isAbstrakRejected || isFullPaperRejected;
+  const isReadOnly = ["ABSTRAK_PENDING", "FULLPAPER_PENDING", "FINAL_VERIFIED", "ABSTRAK_PASSED", "FULLPAPER_REJECTED"].includes(data.status);
 
   const handleUploadFullPaper = async () => {
     if (!fullPaperFile || !paymentFile) {
@@ -255,9 +257,15 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
           </div>
         )}
 
-        {isRejected && (
+        {isAbstrakRejected && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-200 p-5 rounded-2xl font-semibold">
-            Pendaftaran Anda Ditolak. Silakan perbaiki data Anda di bawah ini.
+            Abstrak Anda Ditolak. Silakan perbaiki dan kirim ulang seluruh data pendaftaran di bawah ini.
+          </div>
+        )}
+
+        {isFullPaperRejected && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-200 p-5 rounded-2xl font-semibold">
+            Full Paper / Bukti Pembayaran Anda ditolak. Silakan unggah ulang dokumen di bagian Pengumpulan Full Paper di bawah.
           </div>
         )}
 
@@ -435,7 +443,7 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                 Pengumpulan Full Paper
               </h3>
 
-              {data.paper_url ? (
+              {data.paper_url && data.status !== "FULLPAPER_REJECTED" ? (
                 <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center">
@@ -452,6 +460,11 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
                 </div>
               ) : data.status === "ABSTRAK_PASSED" || data.status === "FULLPAPER_REJECTED" ? (
                 <div className="bg-surface-container-highest/20 p-6 rounded-2xl border border-outline-variant/30">
+                  {data.status === "FULLPAPER_REJECTED" && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-200 rounded-xl font-semibold text-sm">
+                      Full Paper / Bukti Pembayaran Anda sebelumnya ditolak. Silakan unggah ulang dokumen yang diperbaiki.
+                    </div>
+                  )}
                   {uploadError && ( 
                     <div className="mb-6 p-4 bg-error-container text-on-error-container rounded-xl font-medium text-sm">
                       {uploadError}
@@ -533,7 +546,7 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
           </>
         )}
 
-        {isRejected && (
+        {isAbstrakRejected && (
           <div className="space-y-6">
             <form onSubmit={handleResubmit} className="space-y-10">
               <div>
