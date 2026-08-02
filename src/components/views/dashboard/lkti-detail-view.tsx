@@ -129,7 +129,8 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
       const supabase = createClient();
       
       const uploadFile = async (file: File, folder: string) => {
-        const filePath = `lkti/${user.id}/${folder}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const filePath = `lkti/${user.id}/${folder}/${Date.now()}_${sanitizedFileName}`;
         const { error: fileUploadError } = await supabase.storage.from("dcf_files").upload(filePath, file);
         if (fileUploadError) {
           throw new Error(`Gagal mengunggah ${folder}: ${fileUploadError.message}`);
@@ -176,7 +177,8 @@ export function LktiDetailView({ user, data }: { user: User; data: LktiRecord })
       const supabase = createClient();
 
       const uploadFile = async (file: File, folder: string) => {
-        const filePath = `lkti/${user.id}/revision/${folder}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const filePath = `lkti/${user.id}/revision/${folder}/${Date.now()}_${sanitizedFileName}`;
         const { error: fileUploadError } = await supabase.storage.from("dcf_files").upload(filePath, file);
         if (fileUploadError) {
           throw new Error(`Gagal mengunggah ${folder}: ${fileUploadError.message}`);
