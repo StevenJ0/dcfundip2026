@@ -10,7 +10,7 @@ import { ModalNotify } from "@/components/ui/modal-notify";
 // COMPETITION REGISTRATION TOGGLE
 // Set to `true` to re-open Gelombang 2 registration.
 // ============================================================
-const IS_COMPETITION_OPEN = true;
+const IS_COMPETITION_OPEN = false;
 
 interface User {
   id: string;

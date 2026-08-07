@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 // COMPETITION REGISTRATION TOGGLE
 // Set to `true` to re-open Gelombang 2 registration.
 // ============================================================
-const IS_COMPETITION_OPEN = true;
+const IS_COMPETITION_OPEN = false;
 
 export async function submitLKTIRegistration(
   userId: string,
